@@ -5,8 +5,8 @@ import '../../domain/entities/forecast_entity.dart';
 
 const double _itemWidth = 80;
 const double _chartHeight = 50;
-// Vertical offsets inside the column: time(13+8) + icon(36+6) + temp(20+4) = 87
-const double _chartTopOffset = 87;
+// Vertical offsets inside the column: time(~16+8) + icon(36+6) + temp(~24+4) = ~94
+const double _chartTopOffset = 94;
 
 class HourlyForecastWidget extends StatelessWidget {
   final List<ForecastEntity> forecasts;
@@ -67,10 +67,10 @@ class HourlyForecastWidget extends StatelessWidget {
           ),
           // Hourly items with continuous temperature line
           SizedBox(
-            height: 260,
+            height: 250,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.only(left: 4, right: 4, top: 16),
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
               child: SizedBox(
                 width: totalWidth,
                 child: Stack(
@@ -114,6 +114,8 @@ class HourlyForecastWidget extends StatelessWidget {
               ),
             ),
           ),
+          
+          /*
           // 48-hour forecast link
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
@@ -140,6 +142,7 @@ class HourlyForecastWidget extends StatelessWidget {
               ),
             ),
           ),
+          */
         ],
       ),
     );

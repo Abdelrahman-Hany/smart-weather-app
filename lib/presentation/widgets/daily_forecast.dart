@@ -37,6 +37,8 @@ class DailyForecastWidget extends StatelessWidget {
               ],
             );
           }),
+
+          /*
           // 15-day forecast link
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -63,6 +65,7 @@ class DailyForecastWidget extends StatelessWidget {
               ),
             ),
           ),
+          */
         ],
       ),
     );
