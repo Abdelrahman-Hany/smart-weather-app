@@ -9,6 +9,7 @@ import '../widgets/daily_forecast.dart';
 import '../widgets/weather_detail_row.dart';
 import '../widgets/sunrise_sunset_widget.dart';
 import 'search_screen.dart';
+import 'manage_locations_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,22 +18,102 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
+  late PageController _pageController;
+  late AnimationController _bottomBarController;
+  late Animation<Offset> _bottomBarSlide;
+  bool _showBottomBar = true;
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<WeatherCubit>().loadWeatherByLocation();
-    });
+    final initialPage = context.read<WeatherCubit>().state.activeIndex;
+    _pageController = PageController(initialPage: initialPage);
+
+    _bottomBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    _bottomBarSlide = Tween<Offset>(begin: Offset.zero, end: const Offset(0, 1))
+        .animate(
+          CurvedAnimation(
+            parent: _bottomBarController,
+            curve: Curves.easeInOut,
+          ),
+        );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _bottomBarController.dispose();
+    super.dispose();
+  }
+
+  void _onVerticalScroll(ScrollNotification notification) {
+    if (notification is ScrollUpdateNotification &&
+        notification.metrics.axis == Axis.vertical) {
+      final delta = notification.scrollDelta ?? 0;
+      if (delta > 2 && _showBottomBar) {
+        // Scrolling down → hide bar
+        _showBottomBar = false;
+        _bottomBarController.forward();
+      } else if (delta < -2 && !_showBottomBar) {
+        // Scrolling up → show bar
+        _showBottomBar = true;
+        _bottomBarController.reverse();
+      }
+    }
+    if (notification is ScrollEndNotification &&
+        notification.metrics.axis == Axis.vertical) {
+      // Show bar when scrolling stops at the top
+      if (notification.metrics.pixels <= 0 && !_showBottomBar) {
+        _showBottomBar = true;
+        _bottomBarController.reverse();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<WeatherCubit, WeatherState>(
+    return BlocConsumer<WeatherCubit, WeatherState>(
+      listenWhen: (prev, curr) =>
+          prev.activeIndex != curr.activeIndex ||
+          prev.gpsError != curr.gpsError,
+      listener: (context, state) {
+        if (_pageController.hasClients &&
+            _pageController.page?.round() != state.activeIndex) {
+          _pageController.animateToPage(
+            state.activeIndex,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeInOut,
+          );
+        }
+        if (state.gpsError != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.gpsError!),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+          context.read<WeatherCubit>().clearGpsError();
+        }
+      },
       builder: (context, state) {
-        final colors = _getBackgroundColors(state);
+        if (state.isInitializing || state.locations.isEmpty) {
+          return _buildInitialLoading();
+        }
+
+        final activeData = state.activeLocationData;
+        final colors = _getBackgroundColors(activeData);
 
         return Scaffold(
+          extendBody: true,
+          extendBodyBehindAppBar: true,
+          backgroundColor: Colors.transparent,
           body: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -41,57 +122,214 @@ class _HomeScreenState extends State<HomeScreen> {
                 colors: colors,
               ),
             ),
-            child: SafeArea(child: _buildBody(context, state)),
+            child: SafeArea(
+              bottom: false,
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  _onVerticalScroll(n);
+                  return false;
+                },
+                child: Stack(
+                  children: [
+                    // Main PageView content (padded top for city name bar)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40),
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: state.locations.length,
+                        onPageChanged: (index) {
+                          context.read<WeatherCubit>().setActiveIndex(index);
+                        },
+                        itemBuilder: (context, index) {
+                          final locData = state.locations[index];
+                          return _buildLocationPage(context, locData);
+                        },
+                      ),
+                    ),
+                    // Fixed city name at the top
+                    _buildCityNameBar(activeData, colors.first),
+                    // Bottom navigation bar overlay
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: SlideTransition(
+                        position: _bottomBarSlide,
+                        child: _buildBottomBar(state),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
     );
   }
 
-  List<Color> _getBackgroundColors(WeatherState state) {
-    if (state.weather != null) {
-      return WeatherUtils.getWeatherGradient(
-        state.weather!.mainCondition,
-        isNight: state.isNight,
-      );
-    }
-    return [
-      const Color(0xFF4FC3F7),
-      const Color(0xFF29B6F6),
-      const Color(0xFF039BE5),
-    ];
+  Widget _buildCityNameBar(LocationWeatherData? activeData, Color bgColor) {
+    final cityName =
+        activeData?.weather?.cityName ??
+        activeData?.location.cityName ??
+        'Weather';
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 8, bottom: 12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [bgColor, bgColor, bgColor.withValues(alpha: 0.0)],
+            stops: const [0.0, 0.65, 1.0],
+          ),
+        ),
+        child: Text(
+          cityName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _buildBody(BuildContext context, WeatherState state) {
-    switch (state.status) {
-      case WeatherStatus.initial:
-      case WeatherStatus.loading:
-        return _buildLoading();
-      case WeatherStatus.loaded:
-        return _buildLoaded(context, state);
-      case WeatherStatus.error:
-        return _buildError(context, state);
-    }
-  }
-
-  Widget _buildLoading() {
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildBottomBar(WeatherState state) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+    return Container(
+      padding: EdgeInsets.only(bottom: bottomPadding + 4, top: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withValues(alpha: 0.0),
+            Colors.black.withValues(alpha: 0.15),
+            Colors.black.withValues(alpha: 0.3),
+          ],
+          stops: const [0.0, 0.4, 1.0],
+        ),
+      ),
+      child: Row(
         children: [
-          CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-          SizedBox(height: 16),
-          Text(
-            'Loading weather...',
-            style: TextStyle(color: Colors.white70, fontSize: 16),
+          // Location list / manage icon
+          IconButton(
+            icon: const Icon(
+              Icons.format_list_bulleted_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+            onPressed: _openManageLocations,
+            tooltip: 'Manage locations',
+          ),
+          // Page indicator dots (center)
+          Expanded(child: Center(child: _buildPageDots(state))),
+          // Search icon
+          IconButton(
+            icon: const Icon(
+              Icons.search_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
+            onPressed: _navigateToSearch,
+            tooltip: 'Search city',
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLoaded(BuildContext context, WeatherState state) {
-    final weather = state.weather!;
+  Widget _buildPageDots(WeatherState state) {
+    if (state.locations.length <= 1) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(state.locations.length, (index) {
+        final isGps = state.locations[index].location.isCurrentLocation;
+        final isActive = index == state.activeIndex;
+
+        if (isGps) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3),
+            child: Icon(
+              Icons.navigation_rounded,
+              size: isActive ? 10 : 8,
+              color: isActive
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.4),
+            ),
+          );
+        }
+
+        return Container(
+          width: isActive ? 8 : 6,
+          height: isActive ? 8 : 6,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.4),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildInitialLoading() {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6), Color(0xFF039BE5)],
+          ),
+        ),
+        child: const SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                SizedBox(height: 16),
+                Text(
+                  'Loading weather...',
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationPage(BuildContext context, LocationWeatherData locData) {
+    switch (locData.status) {
+      case WeatherStatus.initial:
+      case WeatherStatus.loading:
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+        );
+      case WeatherStatus.loaded:
+        return _buildLoadedContent(context, locData);
+      case WeatherStatus.error:
+        return _buildErrorContent(context, locData);
+    }
+  }
+
+  Widget _buildLoadedContent(
+    BuildContext context,
+    LocationWeatherData locData,
+  ) {
+    final weather = locData.weather!;
     final cubit = context.read<WeatherCubit>();
 
     return RefreshIndicator(
@@ -103,36 +341,6 @@ class _HomeScreenState extends State<HomeScreen> {
           parent: BouncingScrollPhysics(),
         ),
         slivers: [
-          // App Bar
-          SliverAppBar(
-            floating: true,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.location_on_outlined, color: Colors.white),
-              onPressed: () =>
-                  context.read<WeatherCubit>().loadWeatherByLocation(),
-            ),
-            title: Text(
-              weather.cityName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.search_rounded, color: Colors.white),
-                onPressed: () => _navigateToSearch(),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-                onPressed: () => cubit.refreshWeather(),
-              ),
-            ],
-          ),
-          // Content
           SliverToBoxAdapter(
             child: Column(
               children: [
@@ -141,13 +349,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 // Hourly forecast
                 HourlyForecastWidget(
-                  forecasts: state.hourlyForecast,
+                  forecasts: locData.hourlyForecast,
                   summary:
-                      '${weather.description[0].toUpperCase()}${weather.description.substring(1)}. Low ${weather.tempMin.round()}C.',
+                      '${weather.description[0].toUpperCase()}${weather.description.substring(1)}. Low ${weather.tempMin.round()}\u00B0C.',
                 ),
                 const SizedBox(height: 12),
                 // Daily forecast
-                DailyForecastWidget(forecasts: state.dailyForecast),
+                DailyForecastWidget(forecasts: locData.dailyForecast),
                 const SizedBox(height: 12),
                 // Weather details grid
                 WeatherDetailRow(
@@ -188,7 +396,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     WeatherDetailItem(
                       icon: Icons.thermostat_outlined,
                       label: 'Feels Like',
-                      value: '${weather.feelsLike.round()}°',
+                      value: '${weather.feelsLike.round()}\u00B0',
                       subtitle: _getFeelsLikeLabel(
                         weather.temperature,
                         weather.feelsLike,
@@ -201,13 +409,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 SunriseSunsetWidget(weather: weather),
                 const SizedBox(height: 32),
                 // Attribution
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
                   child: Text(
                     'Data provided by OpenWeatherMap',
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ),
+                // Extra padding so content isn't hidden behind bottom bar
+                const SizedBox(height: 56),
               ],
             ),
           ),
@@ -216,7 +426,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildError(BuildContext context, WeatherState state) {
+  Widget _buildErrorContent(BuildContext context, LocationWeatherData locData) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -230,7 +440,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              state.errorMessage,
+              locData.errorMessage,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
@@ -256,7 +466,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(width: 12),
                 FilledButton.icon(
-                  onPressed: () => _navigateToSearch(),
+                  onPressed: _navigateToSearch,
                   icon: const Icon(Icons.search),
                   label: const Text('Search City'),
                   style: FilledButton.styleFrom(
@@ -283,6 +493,32 @@ class _HomeScreenState extends State<HomeScreen> {
     if (city != null && mounted) {
       context.read<WeatherCubit>().loadWeatherByCity(city);
     }
+  }
+
+  void _openManageLocations() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ManageLocationsScreen()),
+    );
+    // Ensure bottom bar is visible when returning
+    if (!_showBottomBar) {
+      _showBottomBar = true;
+      _bottomBarController.reverse();
+    }
+  }
+
+  List<Color> _getBackgroundColors(LocationWeatherData? data) {
+    if (data?.weather != null) {
+      return WeatherUtils.getWeatherGradient(
+        data!.weather!.mainCondition,
+        isNight: data.isNight,
+      );
+    }
+    return [
+      const Color(0xFF4FC3F7),
+      const Color(0xFF29B6F6),
+      const Color(0xFF039BE5),
+    ];
   }
 
   String _getHumidityLabel(int humidity) {

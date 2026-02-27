@@ -16,15 +16,6 @@ class CurrentWeatherCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          const SizedBox(height: 16),
-          // City name
-          Text(
-            weather.cityName,
-            style: textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
           const SizedBox(height: 4),
           Text(
             DateFormat('EEEE, d MMMM').format(DateTime.now()),
