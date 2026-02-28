@@ -1,9 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:geolocator/geolocator.dart';
-import '../../data/datasources/location_storage_service.dart';
+
+import '../../core/errors/error_handler.dart';
+import '../../data/datasources/geo_location_service.dart';
+import '../../domain/entities/forecast_entity.dart';
 import '../../domain/entities/saved_location.dart';
 import '../../domain/entities/weather_entity.dart';
-import '../../domain/entities/forecast_entity.dart';
+import '../../domain/repositories/location_repository.dart';
+import '../../domain/usecases/compute_daily_forecast.dart';
 import '../../domain/usecases/get_current_weather.dart';
 import '../../domain/usecases/get_forecast.dart';
 import 'weather_state.dart';
@@ -11,21 +14,27 @@ import 'weather_state.dart';
 class WeatherCubit extends Cubit<WeatherState> {
   final GetCurrentWeather _getCurrentWeather;
   final GetForecast _getForecast;
-  final LocationStorageService _storage;
+  final ComputeDailyForecast _computeDailyForecast;
+  final LocationRepository _locationRepo;
+  final GeoLocationService _geoService;
 
   WeatherCubit({
     required GetCurrentWeather getCurrentWeather,
     required GetForecast getForecast,
-    required LocationStorageService storage,
+    required ComputeDailyForecast computeDailyForecast,
+    required LocationRepository locationRepository,
+    required GeoLocationService geoLocationService,
   }) : _getCurrentWeather = getCurrentWeather,
        _getForecast = getForecast,
-       _storage = storage,
-       super(WeatherState(activeIndex: storage.getActiveIndex()));
+       _computeDailyForecast = computeDailyForecast,
+       _locationRepo = locationRepository,
+       _geoService = geoLocationService,
+       super(WeatherState(activeIndex: locationRepository.getActiveIndex()));
 
   /// Called on app start. Loads saved locations and fetches weather for all.
   Future<void> initialize() async {
-    final saved = _storage.getSavedLocations();
-    final activeIdx = _storage.getActiveIndex();
+    final saved = _locationRepo.getSavedLocations();
+    final activeIdx = _locationRepo.getActiveIndex();
 
     if (saved.isEmpty) {
       // No saved locations — use GPS.
@@ -85,8 +94,8 @@ class WeatherCubit extends Cubit<WeatherState> {
       );
 
       // Save to storage and get its index.
-      final index = await _storage.addLocation(location);
-      await _storage.setActiveIndex(index);
+      final index = await _locationRepo.addLocation(location);
+      await _locationRepo.setActiveIndex(index);
 
       // Update state.
       final locations = List<LocationWeatherData>.from(state.locations);
@@ -115,7 +124,7 @@ class WeatherCubit extends Cubit<WeatherState> {
         );
       }
     } catch (e) {
-      // If there are existing locations, just show error on a temporary entry.
+      final errorMsg = ErrorHandler.getMessage(e);
       if (state.locations.isEmpty) {
         final tempLocation = SavedLocation.fromCity(
           cityName: trimmed,
@@ -129,13 +138,16 @@ class WeatherCubit extends Cubit<WeatherState> {
               LocationWeatherData(
                 location: tempLocation,
                 status: WeatherStatus.error,
-                errorMessage: _getErrorMessage(e),
+                errorMessage: errorMsg,
               ),
             ],
             activeIndex: 0,
             isInitializing: false,
           ),
         );
+      } else {
+        // Show error as a transient snackbar so the user gets feedback.
+        emit(state.copyWith(gpsError: errorMsg));
       }
     }
   }
@@ -148,7 +160,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     // If GPS location, re-determine position first.
     if (data.location.isCurrentLocation) {
       try {
-        final position = await _determinePosition();
+        final position = await _geoService.determinePosition();
         await _fetchWeatherForIndex(
           state.activeIndex,
           lat: position.latitude,
@@ -174,7 +186,7 @@ class WeatherCubit extends Cubit<WeatherState> {
   void setActiveIndex(int index) {
     if (index < 0 || index >= state.locations.length) return;
     emit(state.copyWith(activeIndex: index));
-    _storage.setActiveIndex(index);
+    _locationRepo.setActiveIndex(index);
   }
 
   /// Clear the transient GPS error after it's been shown.
@@ -187,7 +199,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     if (index < 0 || index >= state.locations.length) return;
     final locations = List<LocationWeatherData>.from(state.locations);
     final removed = locations.removeAt(index);
-    await _storage.removeLocation(removed.location.id);
+    await _locationRepo.removeLocation(removed.location.id);
 
     int newActive = state.activeIndex;
     if (newActive >= locations.length) {
@@ -195,7 +207,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     }
     if (newActive < 0) newActive = 0;
 
-    await _storage.setActiveIndex(newActive);
+    await _locationRepo.setActiveIndex(newActive);
     emit(state.copyWith(locations: locations, activeIndex: newActive));
 
     // If no locations left, re-init with GPS.
@@ -213,7 +225,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     for (final idx in sorted) {
       if (idx >= 0 && idx < locations.length) {
         final removed = locations.removeAt(idx);
-        await _storage.removeLocation(removed.location.id);
+        await _locationRepo.removeLocation(removed.location.id);
       }
     }
 
@@ -224,8 +236,10 @@ class WeatherCubit extends Cubit<WeatherState> {
       newActive = locations.length - 1;
     }
 
-    await _storage.saveLocations(locations.map((l) => l.location).toList());
-    await _storage.setActiveIndex(newActive);
+    await _locationRepo.saveLocations(
+      locations.map((l) => l.location).toList(),
+    );
+    await _locationRepo.setActiveIndex(newActive);
     emit(state.copyWith(locations: locations, activeIndex: newActive));
 
     if (locations.isEmpty) {
@@ -242,7 +256,9 @@ class WeatherCubit extends Cubit<WeatherState> {
       label: () => label.isEmpty ? null : label,
     );
     locations[index] = loc.copyWith(location: updatedLocation);
-    await _storage.saveLocations(locations.map((l) => l.location).toList());
+    await _locationRepo.saveLocations(
+      locations.map((l) => l.location).toList(),
+    );
     emit(state.copyWith(locations: locations));
   }
 
@@ -257,7 +273,9 @@ class WeatherCubit extends Cubit<WeatherState> {
         locations[idx] = loc.copyWith(location: updatedLocation);
       }
     }
-    await _storage.saveLocations(locations.map((l) => l.location).toList());
+    await _locationRepo.saveLocations(
+      locations.map((l) => l.location).toList(),
+    );
     emit(state.copyWith(locations: locations));
   }
 
@@ -267,8 +285,9 @@ class WeatherCubit extends Cubit<WeatherState> {
     if (oldIndex < 0 ||
         oldIndex >= locations.length ||
         newIndex < 0 ||
-        newIndex >= locations.length)
+        newIndex >= locations.length) {
       return;
+    }
 
     final item = locations.removeAt(oldIndex);
     locations.insert(newIndex, item);
@@ -283,8 +302,10 @@ class WeatherCubit extends Cubit<WeatherState> {
       newActive++;
     }
 
-    await _storage.saveLocations(locations.map((l) => l.location).toList());
-    await _storage.setActiveIndex(newActive);
+    await _locationRepo.saveLocations(
+      locations.map((l) => l.location).toList(),
+    );
+    await _locationRepo.setActiveIndex(newActive);
     emit(state.copyWith(locations: locations, activeIndex: newActive));
   }
 
@@ -296,7 +317,7 @@ class WeatherCubit extends Cubit<WeatherState> {
     emit(state.copyWith(isGpsLoading: true, isInitializing: showFullLoading));
 
     try {
-      final position = await _determinePosition();
+      final position = await _geoService.determinePosition();
       final weather = await _getCurrentWeather(
         lat: position.latitude,
         lon: position.longitude,
@@ -314,7 +335,7 @@ class WeatherCubit extends Cubit<WeatherState> {
         lon: position.longitude,
       );
 
-      await _storage.updateGpsLocation(gpsLocation);
+      await _locationRepo.updateGpsLocation(gpsLocation);
 
       final locations = List<LocationWeatherData>.from(state.locations);
       final gpsIdx = locations.indexWhere((l) => l.location.isCurrentLocation);
@@ -336,7 +357,7 @@ class WeatherCubit extends Cubit<WeatherState> {
       final activeIdx = locations.indexWhere(
         (l) => l.location.isCurrentLocation,
       );
-      await _storage.setActiveIndex(activeIdx);
+      await _locationRepo.setActiveIndex(activeIdx);
 
       emit(
         state.copyWith(
@@ -361,7 +382,7 @@ class WeatherCubit extends Cubit<WeatherState> {
                   isCurrentLocation: true,
                 ),
                 status: WeatherStatus.error,
-                errorMessage: _getErrorMessage(e),
+                errorMessage: ErrorHandler.getMessage(e),
               ),
             ],
             activeIndex: 0,
@@ -376,7 +397,7 @@ class WeatherCubit extends Cubit<WeatherState> {
             isInitializing: false,
             isGpsLoading: false,
             activeIndex: previousIndex.clamp(0, state.locations.length - 1),
-            gpsError: _getErrorMessage(e),
+            gpsError: ErrorHandler.getMessage(e),
           ),
         );
       }
@@ -385,7 +406,7 @@ class WeatherCubit extends Cubit<WeatherState> {
 
   Future<void> _refreshGpsCoordinates() async {
     try {
-      final position = await _determinePosition();
+      final position = await _geoService.determinePosition();
       final gpsLocation = state.locations.firstWhere(
         (l) => l.location.isCurrentLocation,
       );
@@ -395,7 +416,7 @@ class WeatherCubit extends Cubit<WeatherState> {
         lat: position.latitude,
         lon: position.longitude,
       );
-      await _storage.updateGpsLocation(updatedLoc);
+      await _locationRepo.updateGpsLocation(updatedLoc);
     } catch (_) {
       // Use cached coordinates; no-op.
     }
@@ -457,7 +478,7 @@ class WeatherCubit extends Cubit<WeatherState> {
         index,
         state.locations[index].copyWith(
           status: WeatherStatus.error,
-          errorMessage: _getErrorMessage(e),
+          errorMessage: ErrorHandler.getMessage(e),
         ),
       );
     }
@@ -469,107 +490,5 @@ class WeatherCubit extends Cubit<WeatherState> {
       locations[index] = data;
       emit(state.copyWith(locations: locations));
     }
-  }
-
-  List<DailyForecast> _computeDailyForecast(List<ForecastEntity> forecasts) {
-    final Map<String, List<ForecastEntity>> grouped = {};
-
-    for (final forecast in forecasts) {
-      final key =
-          '${forecast.dateTime.year}-${forecast.dateTime.month}-${forecast.dateTime.day}';
-      grouped.putIfAbsent(key, () => []).add(forecast);
-    }
-
-    return grouped.entries
-        .map((entry) {
-          final dayForecasts = entry.value;
-          final tempMin = dayForecasts
-              .map((f) => f.tempMin)
-              .reduce((a, b) => a < b ? a : b);
-          final tempMax = dayForecasts
-              .map((f) => f.tempMax)
-              .reduce((a, b) => a > b ? a : b);
-          final maxPop = dayForecasts
-              .map((f) => f.pop)
-              .reduce((a, b) => a > b ? a : b);
-
-          final conditionCounts = <String, int>{};
-          for (final f in dayForecasts) {
-            conditionCounts[f.mainCondition] =
-                (conditionCounts[f.mainCondition] ?? 0) + 1;
-          }
-          final mainCondition = conditionCounts.entries
-              .reduce((a, b) => a.value > b.value ? a : b)
-              .key;
-
-          final representativeForecast = dayForecasts.firstWhere(
-            (f) => f.mainCondition == mainCondition,
-          );
-
-          final dayForecast = dayForecasts.where((f) => f.icon.endsWith('d'));
-          final nightForecast = dayForecasts.where((f) => f.icon.endsWith('n'));
-          final dayIcon = dayForecast.isNotEmpty
-              ? dayForecast.first.icon
-              : representativeForecast.icon;
-          final nightIcon = nightForecast.isNotEmpty
-              ? nightForecast.first.icon
-              : representativeForecast.icon.replaceAll('d', 'n');
-
-          return DailyForecast(
-            date: dayForecasts.first.dateTime,
-            tempMin: tempMin,
-            tempMax: tempMax,
-            mainCondition: mainCondition,
-            dayIcon: dayIcon,
-            nightIcon: nightIcon,
-            description: representativeForecast.description,
-            pop: maxPop,
-          );
-        })
-        .take(7)
-        .toList();
-  }
-
-  Future<Position> _determinePosition() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw Exception('Location services are disabled.');
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        throw Exception('Location permissions are denied.');
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      throw Exception(
-        'Location permissions are permanently denied. Please enable them in settings.',
-      );
-    }
-
-    return await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.low,
-        timeLimit: Duration(seconds: 10),
-      ),
-    );
-  }
-
-  String _getErrorMessage(Object error) {
-    final message = error.toString();
-    if (message.contains('City not found')) {
-      return 'City not found. Please check the name and try again.';
-    }
-    if (message.contains('Location')) {
-      return message.replaceAll('Exception: ', '');
-    }
-    if (message.contains('SocketException') ||
-        message.contains('ClientException')) {
-      return 'No internet connection. Please check your network.';
-    }
-    return 'Something went wrong. Please try again.';
   }
 }

@@ -80,36 +80,6 @@ class WeatherUtils {
     }
   }
 
-  static String getWeatherAnimation(String condition) {
-    switch (condition.toLowerCase()) {
-      case 'clear':
-        return '☀️';
-      case 'clouds':
-        return '☁️';
-      case 'rain':
-      case 'drizzle':
-        return '🌧️';
-      case 'thunderstorm':
-        return '⛈️';
-      case 'snow':
-        return '❄️';
-      case 'mist':
-      case 'fog':
-      case 'haze':
-        return '🌫️';
-      default:
-        return '🌤️';
-    }
-  }
-
-  static String getUvIndexLevel(double uvIndex) {
-    if (uvIndex <= 2) return 'Low';
-    if (uvIndex <= 5) return 'Moderate';
-    if (uvIndex <= 7) return 'High';
-    if (uvIndex <= 10) return 'Very High';
-    return 'Extreme';
-  }
-
   static String windDirectionFromDegrees(int degrees) {
     const directions = [
       'N',

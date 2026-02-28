@@ -1,5 +1,7 @@
-import 'dart:convert';
-
+/// Pure domain entity representing a saved weather location.
+///
+/// No serialization logic here — that belongs in the data layer
+/// ([SavedLocationModel]).
 class SavedLocation {
   final String id;
   final String cityName;
@@ -72,33 +74,6 @@ class SavedLocation {
       isCurrentLocation: false,
     );
   }
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'cityName': cityName,
-    'country': country,
-    'lat': lat,
-    'lon': lon,
-    'isCurrentLocation': isCurrentLocation,
-    if (label != null) 'label': label,
-  };
-
-  factory SavedLocation.fromJson(Map<String, dynamic> json) {
-    return SavedLocation(
-      id: json['id'] as String,
-      cityName: json['cityName'] as String,
-      country: json['country'] as String,
-      lat: (json['lat'] as num).toDouble(),
-      lon: (json['lon'] as num).toDouble(),
-      isCurrentLocation: json['isCurrentLocation'] as bool? ?? false,
-      label: json['label'] as String?,
-    );
-  }
-
-  String encode() => jsonEncode(toJson());
-
-  static SavedLocation decode(String source) =>
-      SavedLocation.fromJson(jsonDecode(source) as Map<String, dynamic>);
 
   @override
   bool operator ==(Object other) =>

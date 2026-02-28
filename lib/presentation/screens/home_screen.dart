@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../core/utils/weather_descriptions.dart';
 import '../../core/utils/weather_utils.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
 import '../widgets/current_weather_card.dart';
-import '../widgets/hourly_forecast.dart';
 import '../widgets/daily_forecast.dart';
-import '../widgets/weather_detail_row.dart';
+import '../widgets/hourly_forecast.dart';
 import '../widgets/sunrise_sunset_widget.dart';
-import 'search_screen.dart';
+import '../widgets/weather_detail_row.dart';
 import 'manage_locations_screen.dart';
+import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,15 +82,22 @@ class _HomeScreenState extends State<HomeScreen>
     return BlocConsumer<WeatherCubit, WeatherState>(
       listenWhen: (prev, curr) =>
           prev.activeIndex != curr.activeIndex ||
+          prev.locations.length != curr.locations.length ||
           prev.gpsError != curr.gpsError,
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.activeIndex) {
-          _pageController.animateToPage(
-            state.activeIndex,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeInOut,
-          );
+          // Delay animation until after the builder rebuilds the PageView
+          // with the correct itemCount, preventing scroll-extent clamping.
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_pageController.hasClients && mounted) {
+              _pageController.animateToPage(
+                state.activeIndex,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
+              );
+            }
+          });
         }
         if (state.gpsError != null) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -364,7 +373,9 @@ class _HomeScreenState extends State<HomeScreen>
                       icon: Icons.water_drop_outlined,
                       label: 'Humidity',
                       value: '${weather.humidity}%',
-                      subtitle: _getHumidityLabel(weather.humidity),
+                      subtitle: WeatherDescriptions.humidityLabel(
+                        weather.humidity,
+                      ),
                     ),
                     WeatherDetailItem(
                       icon: Icons.air_rounded,
@@ -385,19 +396,21 @@ class _HomeScreenState extends State<HomeScreen>
                       label: 'Visibility',
                       value:
                           '${(weather.visibility / 1000).toStringAsFixed(1)} km',
-                      subtitle: _getVisibilityLabel(weather.visibility),
+                      subtitle: WeatherDescriptions.visibilityLabel(
+                        weather.visibility,
+                      ),
                     ),
                     WeatherDetailItem(
                       icon: Icons.cloud_outlined,
                       label: 'Cloudiness',
                       value: '${weather.clouds}%',
-                      subtitle: _getCloudLabel(weather.clouds),
+                      subtitle: WeatherDescriptions.cloudLabel(weather.clouds),
                     ),
                     WeatherDetailItem(
                       icon: Icons.thermostat_outlined,
                       label: 'Feels Like',
                       value: '${weather.feelsLike.round()}\u00B0',
-                      subtitle: _getFeelsLikeLabel(
+                      subtitle: WeatherDescriptions.feelsLikeLabel(
                         weather.temperature,
                         weather.feelsLike,
                       ),
@@ -491,19 +504,34 @@ class _HomeScreenState extends State<HomeScreen>
       MaterialPageRoute(builder: (_) => const SearchScreen()),
     );
     if (city != null && mounted) {
-      context.read<WeatherCubit>().loadWeatherByCity(city);
+      await context.read<WeatherCubit>().loadWeatherByCity(city);
+      // Ensure PageController is on the correct page after the city loads.
+      _syncPageController();
     }
   }
 
-  void _openManageLocations() {
-    Navigator.push(
+  void _openManageLocations() async {
+    await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ManageLocationsScreen()),
     );
+    if (!mounted) return;
+    // Sync page after returning — the active index may have changed
+    // while ManageLocationsScreen was on top.
+    _syncPageController();
     // Ensure bottom bar is visible when returning
     if (!_showBottomBar) {
       _showBottomBar = true;
       _bottomBarController.reverse();
+    }
+  }
+
+  /// Jump the PageController to the cubit's active index if they disagree.
+  void _syncPageController() {
+    if (!_pageController.hasClients || !mounted) return;
+    final target = context.read<WeatherCubit>().state.activeIndex;
+    if (_pageController.page?.round() != target) {
+      _pageController.jumpToPage(target);
     }
   }
 
@@ -514,38 +542,6 @@ class _HomeScreenState extends State<HomeScreen>
         isNight: data.isNight,
       );
     }
-    return [
-      const Color(0xFF4FC3F7),
-      const Color(0xFF29B6F6),
-      const Color(0xFF039BE5),
-    ];
-  }
-
-  String _getHumidityLabel(int humidity) {
-    if (humidity < 30) return 'Low';
-    if (humidity < 60) return 'Comfortable';
-    if (humidity < 80) return 'Humid';
-    return 'Very humid';
-  }
-
-  String _getVisibilityLabel(int visibility) {
-    if (visibility >= 10000) return 'Clear';
-    if (visibility >= 5000) return 'Moderate';
-    if (visibility >= 1000) return 'Low';
-    return 'Very low';
-  }
-
-  String _getCloudLabel(int clouds) {
-    if (clouds < 20) return 'Clear sky';
-    if (clouds < 50) return 'Partly cloudy';
-    if (clouds < 80) return 'Mostly cloudy';
-    return 'Overcast';
-  }
-
-  String _getFeelsLikeLabel(double temp, double feelsLike) {
-    final diff = feelsLike - temp;
-    if (diff.abs() < 2) return 'Similar to actual';
-    if (diff > 0) return 'Warmer than actual';
-    return 'Cooler than actual';
+    return const [Color(0xFF4FC3F7), Color(0xFF29B6F6), Color(0xFF039BE5)];
   }
 }
