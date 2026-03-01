@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/api_constants.dart';
+
+import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/forecast_entity.dart';
 
 const double _itemWidth = 80;
 const double _chartHeight = 50;
-// Vertical offsets inside the column: time(~16+8) + icon(36+6) + temp(~24+4) = ~94
 const double _chartTopOffset = 94;
 
 class HourlyForecastWidget extends StatelessWidget {
@@ -36,7 +36,6 @@ class HourlyForecastWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Summary text
           if (summary != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
@@ -49,7 +48,6 @@ class HourlyForecastWidget extends StatelessWidget {
                 ),
               ),
             ),
-          // Gradient divider line
           Container(
             height: 1.5,
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -65,7 +63,6 @@ class HourlyForecastWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(1),
             ),
           ),
-          // Hourly items with continuous temperature line
           SizedBox(
             height: 250,
             child: SingleChildScrollView(
@@ -75,7 +72,6 @@ class HourlyForecastWidget extends StatelessWidget {
                 width: totalWidth,
                 child: Stack(
                   children: [
-                    // The hourly columns (time, icon, temp, rain%)
                     Row(
                       children: List.generate(forecasts.length, (index) {
                         final forecast = forecasts[index];
@@ -93,7 +89,6 @@ class HourlyForecastWidget extends StatelessWidget {
                         );
                       }),
                     ),
-                    // Single continuous temperature curve overlay
                     Positioned(
                       top: _chartTopOffset,
                       left: 0,
@@ -114,35 +109,6 @@ class HourlyForecastWidget extends StatelessWidget {
               ),
             ),
           ),
-          
-          /*
-          // 48-hour forecast link
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '48-hour forecast',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          */
         ],
       ),
     );
@@ -167,7 +133,6 @@ class _HourlyColumn extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Time
         Text(
           time,
           style: const TextStyle(
@@ -177,7 +142,6 @@ class _HourlyColumn extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // Weather icon
         Image.network(
           ApiConstants.weatherIcon(icon, size: 2),
           width: 36,
@@ -186,7 +150,6 @@ class _HourlyColumn extends StatelessWidget {
               const Icon(Icons.cloud, color: Colors.white, size: 28),
         ),
         const SizedBox(height: 6),
-        // Temperature
         Text(
           '${temperature.round()}°',
           style: const TextStyle(
@@ -196,10 +159,8 @@ class _HourlyColumn extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        // Spacer for the chart area (painted by the overlay)
         const SizedBox(height: _chartHeight),
         const SizedBox(height: 8),
-        // Rain probability - always shown like Google Weather
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
@@ -225,7 +186,6 @@ class _HourlyColumn extends StatelessWidget {
   }
 }
 
-/// Draws a single continuous smooth curve through all temperature points.
 class _ContinuousTempLinePainter extends CustomPainter {
   final List<double> temperatures;
   final double minTemp;
@@ -265,7 +225,6 @@ class _ContinuousTempLinePainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    // Build points — each point is at the center of its column
     final points = <Offset>[];
     for (int i = 0; i < temperatures.length; i++) {
       final x = (i * itemWidth) + (itemWidth / 2);
@@ -273,7 +232,6 @@ class _ContinuousTempLinePainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
-    // Draw smooth cubic bezier path through all points
     final path = Path();
     path.moveTo(points[0].dx, points[0].dy);
 
@@ -293,7 +251,6 @@ class _ContinuousTempLinePainter extends CustomPainter {
 
     canvas.drawPath(path, linePaint);
 
-    // Draw dots on top of the line
     for (final point in points) {
       canvas.drawCircle(point, 4, dotFillPaint);
       canvas.drawCircle(point, 4, dotBorderPaint);

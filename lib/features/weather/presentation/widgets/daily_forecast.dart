@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/api_constants.dart';
+
+import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/forecast_entity.dart';
 
 class DailyForecastWidget extends StatelessWidget {
@@ -20,7 +21,6 @@ class DailyForecastWidget extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Daily rows
           ...forecasts.asMap().entries.map((entry) {
             final index = entry.key;
             final forecast = entry.value;
@@ -37,35 +37,6 @@ class DailyForecastWidget extends StatelessWidget {
               ],
             );
           }),
-
-          /*
-          // 15-day forecast link
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '15-day forecast',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.7),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.white.withValues(alpha: 0.7),
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          */
         ],
       ),
     );
@@ -85,7 +56,6 @@ class _DailyRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       child: Row(
         children: [
-          // Day name
           SizedBox(
             width: 60,
             child: Text(
@@ -97,7 +67,6 @@ class _DailyRow extends StatelessWidget {
               ),
             ),
           ),
-          // Rain probability
           SizedBox(
             width: 52,
             child: Row(
@@ -123,7 +92,6 @@ class _DailyRow extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Day icon
           Image.network(
             ApiConstants.weatherIcon(forecast.dayIcon, size: 2),
             width: 34,
@@ -132,7 +100,6 @@ class _DailyRow extends StatelessWidget {
                 const Icon(Icons.wb_sunny, color: Color(0xFFFFD54F), size: 28),
           ),
           const SizedBox(width: 6),
-          // Night icon
           Image.network(
             ApiConstants.weatherIcon(forecast.nightIcon, size: 2),
             width: 34,
@@ -144,7 +111,6 @@ class _DailyRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 20),
-          // High temp
           SizedBox(
             width: 34,
             child: Text(
@@ -158,7 +124,6 @@ class _DailyRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          // Low temp
           SizedBox(
             width: 30,
             child: Text(

@@ -1,10 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/errors/error_handler.dart';
+import '../../../../core/error/error_handler.dart';
 import '../../data/datasources/geo_location_service.dart';
-import '../../domain/entities/forecast_entity.dart';
 import '../../domain/entities/saved_location.dart';
-import '../../domain/entities/weather_entity.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../../domain/usecases/compute_daily_forecast.dart';
 import '../../domain/usecases/get_current_weather.dart';
@@ -37,12 +35,10 @@ class WeatherCubit extends Cubit<WeatherState> {
     final activeIdx = _locationRepo.getActiveIndex();
 
     if (saved.isEmpty) {
-      // No saved locations — use GPS.
       await _addGpsLocation();
       return;
     }
 
-    // Build initial location list with loading status.
     final locationDataList = saved
         .map(
           (loc) =>
@@ -59,18 +55,16 @@ class WeatherCubit extends Cubit<WeatherState> {
       ),
     );
 
-    // If the first location is GPS, update it with fresh coordinates.
     if (saved.first.isCurrentLocation) {
       _refreshGpsCoordinates();
     }
 
-    // Fetch weather for all locations in parallel.
     await _fetchAllWeather();
   }
 
   /// Add a GPS-based location (first time or manual location button).
   Future<void> loadWeatherByLocation() async {
-    if (state.isGpsLoading) return; // Prevent duplicate taps.
+    if (state.isGpsLoading) return;
     final hasExistingLocations = state.locations.isNotEmpty;
     await _addGpsLocation(showFullLoading: !hasExistingLocations);
   }
@@ -80,76 +74,89 @@ class WeatherCubit extends Cubit<WeatherState> {
     if (city.trim().isEmpty) return;
     final trimmed = city.trim();
 
-    try {
-      // Fetch weather to get lat/lon/country.
-      final weather = await _getCurrentWeather(city: trimmed);
-      final forecast = await _getForecast(city: trimmed);
-      final dailyForecast = _computeDailyForecast(forecast);
+    final weatherResult = await _getCurrentWeather(
+      GetCurrentWeatherParams(city: trimmed),
+    );
 
-      final location = SavedLocation.fromCity(
-        cityName: weather.cityName,
-        country: weather.country,
-        lat: weather.lat,
-        lon: weather.lon,
-      );
-
-      // Save to storage and get its index.
-      final index = await _locationRepo.addLocation(location);
-      await _locationRepo.setActiveIndex(index);
-
-      // Update state.
-      final locations = List<LocationWeatherData>.from(state.locations);
-      final existingIdx = locations.indexWhere(
-        (l) => l.location.id == location.id,
-      );
-
-      final newData = LocationWeatherData(
-        location: location,
-        status: WeatherStatus.loaded,
-        weather: weather,
-        forecast: forecast,
-        dailyForecast: dailyForecast,
-      );
-
-      if (existingIdx != -1) {
-        locations[existingIdx] = newData;
-        emit(state.copyWith(locations: locations, activeIndex: existingIdx));
-      } else {
-        locations.add(newData);
-        emit(
-          state.copyWith(
-            locations: locations,
-            activeIndex: locations.length - 1,
-          ),
+    weatherResult.fold(
+      (failure) {
+        if (state.locations.isEmpty) {
+          final tempLocation = SavedLocation.fromCity(
+            cityName: trimmed,
+            country: '',
+            lat: 0,
+            lon: 0,
+          );
+          emit(
+            state.copyWith(
+              locations: [
+                LocationWeatherData(
+                  location: tempLocation,
+                  status: WeatherStatus.error,
+                  errorMessage: failure.message,
+                ),
+              ],
+              activeIndex: 0,
+              isInitializing: false,
+            ),
+          );
+        } else {
+          emit(state.copyWith(gpsError: failure.message));
+        }
+      },
+      (weather) async {
+        final forecastResult = await _getForecast(
+          GetForecastParams(city: trimmed),
         );
-      }
-    } catch (e) {
-      final errorMsg = ErrorHandler.getMessage(e);
-      if (state.locations.isEmpty) {
-        final tempLocation = SavedLocation.fromCity(
-          cityName: trimmed,
-          country: '',
-          lat: 0,
-          lon: 0,
+
+        forecastResult.fold(
+          (failure) {
+            emit(state.copyWith(gpsError: failure.message));
+          },
+          (forecast) async {
+            final dailyForecast = _computeDailyForecast(forecast);
+
+            final location = SavedLocation.fromCity(
+              cityName: weather.cityName,
+              country: weather.country,
+              lat: weather.lat,
+              lon: weather.lon,
+            );
+
+            final index = await _locationRepo.addLocation(location);
+            await _locationRepo.setActiveIndex(index);
+
+            final locations = List<LocationWeatherData>.from(state.locations);
+            final existingIdx = locations.indexWhere(
+              (l) => l.location.id == location.id,
+            );
+
+            final newData = LocationWeatherData(
+              location: location,
+              status: WeatherStatus.loaded,
+              weather: weather,
+              forecast: forecast,
+              dailyForecast: dailyForecast,
+            );
+
+            if (existingIdx != -1) {
+              locations[existingIdx] = newData;
+              emit(
+                state.copyWith(locations: locations, activeIndex: existingIdx),
+              );
+            } else {
+              locations.add(newData);
+              emit(
+                state.copyWith(
+                  locations: locations,
+                  activeIndex: locations.length - 1,
+                ),
+              );
+            }
+          },
         );
-        emit(
-          state.copyWith(
-            locations: [
-              LocationWeatherData(
-                location: tempLocation,
-                status: WeatherStatus.error,
-                errorMessage: errorMsg,
-              ),
-            ],
-            activeIndex: 0,
-            isInitializing: false,
-          ),
-        );
-      } else {
-        // Show error as a transient snackbar so the user gets feedback.
-        emit(state.copyWith(gpsError: errorMsg));
-      }
-    }
+      },
+    );
   }
 
   /// Refresh weather data for the currently active location.
@@ -157,7 +164,6 @@ class WeatherCubit extends Cubit<WeatherState> {
     final data = state.activeLocationData;
     if (data == null) return;
 
-    // If GPS location, re-determine position first.
     if (data.location.isCurrentLocation) {
       try {
         final position = await _geoService.determinePosition();
@@ -210,7 +216,6 @@ class WeatherCubit extends Cubit<WeatherState> {
     await _locationRepo.setActiveIndex(newActive);
     emit(state.copyWith(locations: locations, activeIndex: newActive));
 
-    // If no locations left, re-init with GPS.
     if (locations.isEmpty) {
       await _addGpsLocation();
     }
@@ -220,7 +225,6 @@ class WeatherCubit extends Cubit<WeatherState> {
   Future<void> removeMultipleLocations(Set<int> indices) async {
     if (indices.isEmpty) return;
     final locations = List<LocationWeatherData>.from(state.locations);
-    // Remove from highest index first to avoid shifting.
     final sorted = indices.toList()..sort((a, b) => b.compareTo(a));
     for (final idx in sorted) {
       if (idx >= 0 && idx < locations.length) {
@@ -292,7 +296,6 @@ class WeatherCubit extends Cubit<WeatherState> {
     final item = locations.removeAt(oldIndex);
     locations.insert(newIndex, item);
 
-    // Adjust active index to follow the same location.
     int newActive = state.activeIndex;
     if (state.activeIndex == oldIndex) {
       newActive = newIndex;
@@ -318,89 +321,112 @@ class WeatherCubit extends Cubit<WeatherState> {
 
     try {
       final position = await _geoService.determinePosition();
-      final weather = await _getCurrentWeather(
-        lat: position.latitude,
-        lon: position.longitude,
-      );
-      final forecast = await _getForecast(
-        lat: position.latitude,
-        lon: position.longitude,
-      );
-      final dailyForecast = _computeDailyForecast(forecast);
 
-      final gpsLocation = SavedLocation.fromGps(
-        cityName: weather.cityName,
-        country: weather.country,
-        lat: position.latitude,
-        lon: position.longitude,
+      final weatherResult = await _getCurrentWeather(
+        GetCurrentWeatherParams(
+          lat: position.latitude,
+          lon: position.longitude,
+        ),
       );
 
-      await _locationRepo.updateGpsLocation(gpsLocation);
+      await weatherResult.fold(
+        (failure) async {
+          _emitGpsError(failure.message, previousIndex);
+        },
+        (weather) async {
+          final forecastResult = await _getForecast(
+            GetForecastParams(lat: position.latitude, lon: position.longitude),
+          );
 
-      final locations = List<LocationWeatherData>.from(state.locations);
-      final gpsIdx = locations.indexWhere((l) => l.location.isCurrentLocation);
+          forecastResult.fold(
+            (failure) {
+              _emitGpsError(failure.message, previousIndex);
+            },
+            (forecast) async {
+              final dailyForecast = _computeDailyForecast(forecast);
 
-      final gpsData = LocationWeatherData(
-        location: gpsLocation,
-        status: WeatherStatus.loaded,
-        weather: weather,
-        forecast: forecast,
-        dailyForecast: dailyForecast,
+              final gpsLocation = SavedLocation.fromGps(
+                cityName: weather.cityName,
+                country: weather.country,
+                lat: position.latitude,
+                lon: position.longitude,
+              );
+
+              await _locationRepo.updateGpsLocation(gpsLocation);
+
+              final locations = List<LocationWeatherData>.from(state.locations);
+              final gpsIdx = locations.indexWhere(
+                (l) => l.location.isCurrentLocation,
+              );
+
+              final gpsData = LocationWeatherData(
+                location: gpsLocation,
+                status: WeatherStatus.loaded,
+                weather: weather,
+                forecast: forecast,
+                dailyForecast: dailyForecast,
+              );
+
+              if (gpsIdx != -1) {
+                locations[gpsIdx] = gpsData;
+              } else {
+                locations.insert(0, gpsData);
+              }
+
+              final activeIdx = locations.indexWhere(
+                (l) => l.location.isCurrentLocation,
+              );
+              await _locationRepo.setActiveIndex(activeIdx);
+
+              emit(
+                state.copyWith(
+                  locations: locations,
+                  activeIndex: activeIdx,
+                  isInitializing: false,
+                  isGpsLoading: false,
+                ),
+              );
+            },
+          );
+        },
       );
+    } catch (e) {
+      _emitGpsError(ErrorHandler.getMessage(e), previousIndex);
+    }
+  }
 
-      if (gpsIdx != -1) {
-        locations[gpsIdx] = gpsData;
-      } else {
-        locations.insert(0, gpsData);
-      }
-
-      final activeIdx = locations.indexWhere(
-        (l) => l.location.isCurrentLocation,
-      );
-      await _locationRepo.setActiveIndex(activeIdx);
-
+  void _emitGpsError(String message, int previousIndex) {
+    if (state.locations.isEmpty) {
       emit(
         state.copyWith(
-          locations: locations,
-          activeIndex: activeIdx,
+          locations: [
+            LocationWeatherData(
+              location: const SavedLocation(
+                id: 'gps_current',
+                cityName: 'Current Location',
+                country: '',
+                lat: 0,
+                lon: 0,
+                isCurrentLocation: true,
+              ),
+              status: WeatherStatus.error,
+              errorMessage: message,
+            ),
+          ],
+          activeIndex: 0,
           isInitializing: false,
           isGpsLoading: false,
         ),
       );
-    } catch (e) {
-      if (state.locations.isEmpty) {
-        emit(
-          state.copyWith(
-            locations: [
-              LocationWeatherData(
-                location: const SavedLocation(
-                  id: 'gps_current',
-                  cityName: 'Current Location',
-                  country: '',
-                  lat: 0,
-                  lon: 0,
-                  isCurrentLocation: true,
-                ),
-                status: WeatherStatus.error,
-                errorMessage: ErrorHandler.getMessage(e),
-              ),
-            ],
-            activeIndex: 0,
-            isInitializing: false,
-            isGpsLoading: false,
-          ),
-        );
-      } else {
-        // GPS failed but we have existing locations — stay on current page, show error.
-        emit(
-          state.copyWith(
-            isInitializing: false,
-            isGpsLoading: false,
-            activeIndex: previousIndex.clamp(0, state.locations.length - 1),
-            gpsError: ErrorHandler.getMessage(e),
-          ),
-        );
-      }
+    } else {
+      emit(
+        state.copyWith(
+          isInitializing: false,
+          isGpsLoading: false,
+          activeIndex: previousIndex.clamp(0, state.locations.length - 1),
+          gpsError: message,
+        ),
+      );
     }
   }
 
@@ -444,44 +470,56 @@ class WeatherCubit extends Cubit<WeatherState> {
   }) async {
     if (index < 0 || index >= state.locations.length) return;
 
-    // Mark loading.
     _updateLocationAtIndex(
       index,
       state.locations[index].copyWith(status: WeatherStatus.loading),
     );
 
-    try {
-      final results = await Future.wait([
-        _getCurrentWeather(lat: lat, lon: lon, city: city),
-        _getForecast(lat: lat, lon: lon, city: city),
-      ]);
+    final weatherResult = await _getCurrentWeather(
+      GetCurrentWeatherParams(lat: lat, lon: lon, city: city),
+    );
+    final forecastResult = await _getForecast(
+      GetForecastParams(lat: lat, lon: lon, city: city),
+    );
 
-      final weather = results[0] as WeatherEntity;
-      final forecast = results[1] as List<ForecastEntity>;
-      final dailyForecast = _computeDailyForecast(forecast);
+    if (index >= state.locations.length) return;
 
-      if (index >= state.locations.length) return;
-
-      _updateLocationAtIndex(
-        index,
-        state.locations[index].copyWith(
-          status: WeatherStatus.loaded,
-          weather: weather,
-          forecast: forecast,
-          dailyForecast: dailyForecast,
-        ),
-      );
-    } catch (e) {
-      if (index >= state.locations.length) return;
-
-      _updateLocationAtIndex(
-        index,
-        state.locations[index].copyWith(
-          status: WeatherStatus.error,
-          errorMessage: ErrorHandler.getMessage(e),
-        ),
-      );
-    }
+    weatherResult.fold(
+      (failure) {
+        _updateLocationAtIndex(
+          index,
+          state.locations[index].copyWith(
+            status: WeatherStatus.error,
+            errorMessage: failure.message,
+          ),
+        );
+      },
+      (weather) {
+        forecastResult.fold(
+          (failure) {
+            _updateLocationAtIndex(
+              index,
+              state.locations[index].copyWith(
+                status: WeatherStatus.error,
+                errorMessage: failure.message,
+              ),
+            );
+          },
+          (forecast) {
+            final dailyForecast = _computeDailyForecast(forecast);
+            _updateLocationAtIndex(
+              index,
+              state.locations[index].copyWith(
+                status: WeatherStatus.loaded,
+                weather: weather,
+                forecast: forecast,
+                dailyForecast: dailyForecast,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _updateLocationAtIndex(int index, LocationWeatherData data) {

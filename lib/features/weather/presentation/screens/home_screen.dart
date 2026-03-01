@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../core/utils/weather_descriptions.dart';
-import '../../core/utils/weather_utils.dart';
+import '../../../../core/utils/show_snackbar.dart';
+import '../../../../core/utils/weather_descriptions.dart';
+import '../../../../core/utils/weather_utils.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
 import '../widgets/current_weather_card.dart';
@@ -58,18 +59,15 @@ class _HomeScreenState extends State<HomeScreen>
         notification.metrics.axis == Axis.vertical) {
       final delta = notification.scrollDelta ?? 0;
       if (delta > 2 && _showBottomBar) {
-        // Scrolling down → hide bar
         _showBottomBar = false;
         _bottomBarController.forward();
       } else if (delta < -2 && !_showBottomBar) {
-        // Scrolling up → show bar
         _showBottomBar = true;
         _bottomBarController.reverse();
       }
     }
     if (notification is ScrollEndNotification &&
         notification.metrics.axis == Axis.vertical) {
-      // Show bar when scrolling stops at the top
       if (notification.metrics.pixels <= 0 && !_showBottomBar) {
         _showBottomBar = true;
         _bottomBarController.reverse();
@@ -87,8 +85,6 @@ class _HomeScreenState extends State<HomeScreen>
       listener: (context, state) {
         if (_pageController.hasClients &&
             _pageController.page?.round() != state.activeIndex) {
-          // Delay animation until after the builder rebuilds the PageView
-          // with the correct itemCount, preventing scroll-extent clamping.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients && mounted) {
               _pageController.animateToPage(
@@ -100,14 +96,7 @@ class _HomeScreenState extends State<HomeScreen>
           });
         }
         if (state.gpsError != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.gpsError!),
-              backgroundColor: Colors.red.shade700,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          showErrorSnackbar(context, state.gpsError!);
           context.read<WeatherCubit>().clearGpsError();
         }
       },
@@ -140,7 +129,6 @@ class _HomeScreenState extends State<HomeScreen>
                 },
                 child: Stack(
                   children: [
-                    // Main PageView content (padded top for city name bar)
                     Padding(
                       padding: const EdgeInsets.only(top: 40),
                       child: PageView.builder(
@@ -155,9 +143,7 @@ class _HomeScreenState extends State<HomeScreen>
                         },
                       ),
                     ),
-                    // Fixed city name at the top
                     _buildCityNameBar(activeData, colors.first),
-                    // Bottom navigation bar overlay
                     Positioned(
                       left: 0,
                       right: 0,
@@ -227,7 +213,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       child: Row(
         children: [
-          // Location list / manage icon
           IconButton(
             icon: const Icon(
               Icons.format_list_bulleted_rounded,
@@ -237,9 +222,7 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: _openManageLocations,
             tooltip: 'Manage locations',
           ),
-          // Page indicator dots (center)
           Expanded(child: Center(child: _buildPageDots(state))),
-          // Search icon
           IconButton(
             icon: const Icon(
               Icons.search_rounded,
@@ -353,20 +336,16 @@ class _HomeScreenState extends State<HomeScreen>
           SliverToBoxAdapter(
             child: Column(
               children: [
-                // Current weather
                 CurrentWeatherCard(weather: weather),
                 const SizedBox(height: 24),
-                // Hourly forecast
                 HourlyForecastWidget(
                   forecasts: locData.hourlyForecast,
                   summary:
                       '${weather.description[0].toUpperCase()}${weather.description.substring(1)}. Low ${weather.tempMin.round()}\u00B0C.',
                 ),
                 const SizedBox(height: 12),
-                // Daily forecast
                 DailyForecastWidget(forecasts: locData.dailyForecast),
                 const SizedBox(height: 12),
-                // Weather details grid
                 WeatherDetailRow(
                   items: [
                     WeatherDetailItem(
@@ -418,10 +397,8 @@ class _HomeScreenState extends State<HomeScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
-                // Sunrise & Sunset
                 SunriseSunsetWidget(weather: weather),
                 const SizedBox(height: 32),
-                // Attribution
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
                   child: Text(
@@ -429,7 +406,6 @@ class _HomeScreenState extends State<HomeScreen>
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ),
-                // Extra padding so content isn't hidden behind bottom bar
                 const SizedBox(height: 56),
               ],
             ),
@@ -505,7 +481,6 @@ class _HomeScreenState extends State<HomeScreen>
     );
     if (city != null && mounted) {
       await context.read<WeatherCubit>().loadWeatherByCity(city);
-      // Ensure PageController is on the correct page after the city loads.
       _syncPageController();
     }
   }
@@ -516,17 +491,13 @@ class _HomeScreenState extends State<HomeScreen>
       MaterialPageRoute(builder: (_) => const ManageLocationsScreen()),
     );
     if (!mounted) return;
-    // Sync page after returning — the active index may have changed
-    // while ManageLocationsScreen was on top.
     _syncPageController();
-    // Ensure bottom bar is visible when returning
     if (!_showBottomBar) {
       _showBottomBar = true;
       _bottomBarController.reverse();
     }
   }
 
-  /// Jump the PageController to the cubit's active index if they disagree.
   void _syncPageController() {
     if (!_pageController.hasClients || !mounted) return;
     final target = context.read<WeatherCubit>().state.activeIndex;

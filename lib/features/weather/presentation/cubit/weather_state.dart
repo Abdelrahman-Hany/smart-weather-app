@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/weather_entity.dart';
+
 import '../../domain/entities/forecast_entity.dart';
 import '../../domain/entities/saved_location.dart';
+import '../../domain/entities/weather_entity.dart';
 
 enum WeatherStatus { initial, loading, loaded, error }
 

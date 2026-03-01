@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/show_snackbar.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
 import '../widgets/bottom_bar_action.dart';
@@ -78,7 +79,6 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
     );
   }
 
-  /// Show the "Add a custom label" or "Edit custom label" dialog.
   Future<void> _showLabelDialog({
     required int locationIndex,
     String? existingLabel,
@@ -92,18 +92,15 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
     }
   }
 
-  /// Edit label for selected locations (uses first selected).
   void _editLabelForSelected() {
     if (_selectedIndices.isEmpty) return;
     final state = context.read<WeatherCubit>().state;
-    // Use the first selected location's existing label.
     final firstIdx = _selectedIndices.first;
     if (firstIdx >= state.locations.length) return;
     final existingLabel = state.locations[firstIdx].location.label;
     _showLabelDialog(locationIndex: firstIdx, existingLabel: existingLabel);
   }
 
-  /// Remove labels from all selected locations.
   void _removeLabelsForSelected() {
     if (_selectedIndices.isEmpty) return;
     context.read<WeatherCubit>().removeLabels(Set.from(_selectedIndices));
@@ -129,7 +126,6 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
 
   Future<void> _addCurrentLocation() async {
     context.read<WeatherCubit>().loadWeatherByLocation();
-    // Don't pop — the BlocListener will show a snackbar if it fails.
   }
 
   Future<void> _addCitySearch() async {
@@ -148,14 +144,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
       listenWhen: (prev, curr) => prev.gpsError != curr.gpsError,
       listener: (context, state) {
         if (state.gpsError != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.gpsError!),
-              backgroundColor: Colors.red.shade700,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-            ),
-          );
+          showErrorSnackbar(context, state.gpsError!);
           context.read<WeatherCubit>().clearGpsError();
         }
       },
@@ -168,12 +157,9 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
           body: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // "Add current location" button
               _buildAddCurrentLocationButton(state),
               const SizedBox(height: 8),
-              // Location list
               Expanded(child: _buildLocationList(state)),
-              // Info text
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
                 child: Text(
@@ -187,7 +173,6 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
               ),
             ],
           ),
-          // Bottom bar in select mode
           bottomNavigationBar: _isSelectMode ? _buildSelectBottomBar() : null,
         );
       },
@@ -337,7 +322,6 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
     final hasSelection = _selectedIndices.isNotEmpty;
     final state = context.read<WeatherCubit>().state;
 
-    // Check if any selected location has a label.
     final anyHasLabel = _selectedIndices.any((idx) {
       if (idx < state.locations.length) {
         final lbl = state.locations[idx].location.label;
@@ -360,7 +344,6 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Remove label — only enabled when at least one selected has a label
           BottomBarAction(
             icon: Icons.do_not_disturb_on_outlined,
             label: 'Remove label',
@@ -369,14 +352,12 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
                 ? _removeLabelsForSelected
                 : null,
           ),
-          // Add label / Edit label — text changes based on whether a label exists
           BottomBarAction(
             icon: Icons.edit_outlined,
             label: anyHasLabel ? 'Edit label' : 'Add label',
             enabled: hasSelection,
             onPressed: hasSelection ? _editLabelForSelected : null,
           ),
-          // Delete
           BottomBarAction(
             icon: Icons.delete_outline_rounded,
             label: 'Delete',

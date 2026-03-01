@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
 import '../../domain/entities/weather_entity.dart';
 
 class SunriseSunsetWidget extends StatelessWidget {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../core/constants/api_constants.dart';
+
+import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/weather_entity.dart';
 
 class CurrentWeatherCard extends StatelessWidget {
@@ -22,7 +23,6 @@ class CurrentWeatherCard extends StatelessWidget {
             style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 24),
-          // Weather icon and temperature
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +56,6 @@ class CurrentWeatherCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          // Weather description
           Text(
             weather.description[0].toUpperCase() +
                 weather.description.substring(1),
@@ -66,7 +65,6 @@ class CurrentWeatherCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          // High / Low
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
