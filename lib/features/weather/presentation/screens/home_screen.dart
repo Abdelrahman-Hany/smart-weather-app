@@ -4,6 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../../core/utils/weather_descriptions.dart';
 import '../../../../core/utils/weather_utils.dart';
+import '../../../ai_recommendation/presentation/screens/ai_outfit_screen.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
+import '../../../auth/presentation/screens/login_screen.dart';
+import '../../../auth/presentation/screens/profile_screen.dart';
+import '../../../premium/presentation/cubit/premium_cubit.dart';
+import '../../../premium/presentation/cubit/premium_state.dart';
+import '../../domain/entities/weather_entity.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
 import '../widgets/current_weather_card.dart';
@@ -144,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     _buildCityNameBar(activeData, colors.first),
+                    _buildTopRightActions(context),
                     Positioned(
                       left: 0,
                       right: 0,
@@ -399,6 +408,9 @@ class _HomeScreenState extends State<HomeScreen>
                 const SizedBox(height: 12),
                 SunriseSunsetWidget(weather: weather),
                 const SizedBox(height: 32),
+                // AI Outfit Recommendation Button
+                _buildAiRecommendationButton(context, weather),
+                const SizedBox(height: 12),
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
                   child: Text(
@@ -504,6 +516,152 @@ class _HomeScreenState extends State<HomeScreen>
     if (_pageController.page?.round() != target) {
       _pageController.jumpToPage(target);
     }
+  }
+
+  Widget _buildTopRightActions(BuildContext context) {
+    return Positioned(
+      top: 4,
+      right: 4,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          BlocBuilder<AuthCubit, AuthState>(
+            builder: (context, authState) {
+              return IconButton(
+                icon: Icon(
+                  authState.isSignedIn
+                      ? Icons.account_circle
+                      : Icons.account_circle_outlined,
+                  color: Colors.white,
+                  size: 26,
+                ),
+                onPressed: () {
+                  if (authState.isSignedIn) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  }
+                },
+                tooltip: authState.isSignedIn ? 'Profile' : 'Sign In',
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiRecommendationButton(
+    BuildContext context,
+    WeatherEntity weather,
+  ) {
+    return BlocBuilder<PremiumCubit, PremiumState>(
+      builder: (context, premiumState) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: premiumState.isPremium
+                  ? [Colors.purple.shade400, Colors.deepPurple.shade600]
+                  : [Colors.white24, Colors.white12],
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AiOutfitScreen(weather: weather),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text(
+                                'AI Outfit Advisor',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              if (!premiumState.isPremium) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade600,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'PRO',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'What should I wear today?',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right, color: Colors.white54),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   List<Color> _getBackgroundColors(LocationWeatherData? data) {

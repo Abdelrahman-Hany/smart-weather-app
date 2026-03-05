@@ -44,6 +44,21 @@ dependencies:
   fpdart: ^1.2.0
   get_it: ^9.2.1
 
+  # Firebase
+  firebase_core: ^3.13.0
+  firebase_auth: ^5.7.0
+  cloud_firestore: ^5.6.7
+  google_sign_in: ^6.2.2
+
+  # AI
+  google_generative_ai: ^0.4.6
+
+  # Stripe Payment
+  flutter_stripe: ^11.4.0
+
+  # Utilities
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

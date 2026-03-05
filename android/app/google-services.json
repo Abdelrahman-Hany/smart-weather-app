@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1046465987175",
+    "project_id": "smart-weather-app-7061f",
+    "storage_bucket": "smart-weather-app-7061f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1046465987175:android:052fc5c421488df5c60ac2",
+        "android_client_info": {
+          "package_name": "com.example.weather_app_sarmad"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBc_PgsOd_r2hNfHOblF_xe2lHfPNSV4ZY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
