@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/responsive.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -88,25 +89,28 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_controller.text.isNotEmpty) ...[
-              _buildSearchAction(),
-            ] else ...[
-              if (_recentSearches.isNotEmpty) ...[
-                _buildSectionHeader(l10n.recentSearches),
-                const SizedBox(height: 8),
-                _buildRecentSearches(),
-                const SizedBox(height: 24),
+      body: MaxWidthBox(
+        maxWidth: 560,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_controller.text.isNotEmpty) ...[
+                _buildSearchAction(),
+              ] else ...[
+                if (_recentSearches.isNotEmpty) ...[
+                  _buildSectionHeader(l10n.recentSearches),
+                  const SizedBox(height: 8),
+                  _buildRecentSearches(),
+                  const SizedBox(height: 24),
+                ],
+                _buildSectionHeader(l10n.popularCities),
+                const SizedBox(height: 12),
+                _buildPopularCities(),
               ],
-              _buildSectionHeader(l10n.popularCities),
-              const SizedBox(height: 12),
-              _buildPopularCities(),
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../cubit/premium_cubit.dart';
@@ -39,8 +41,13 @@ class PremiumScreen extends StatelessWidget {
             title: Text(l10n.premium),
             backgroundColor: Colors.transparent,
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+          body: kIsWeb
+              ? _WebPremiumNotice(colorScheme: colorScheme)
+              : MaxWidthBox(
+                  maxWidth: 560,
+                  alignment: Alignment.topCenter,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -268,7 +275,8 @@ class PremiumScreen extends StatelessWidget {
                 ],
               ],
             ),
-          ),
+              ),
+            ),
         );
       },
     );
@@ -404,5 +412,61 @@ class PremiumScreen extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+}
+
+/// Shown on web instead of the Stripe payment flow.
+class _WebPremiumNotice extends StatelessWidget {
+  const _WebPremiumNotice({required this.colorScheme});
+
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.smartphone_rounded,
+                size: 64,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Available on Mobile',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Premium purchase is available through our iOS and Android apps. Download the app to unlock AI Outfit Recommendations and more.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Icon(
+              Icons.workspace_premium,
+              size: 40,
+              color: Colors.amber.shade600,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

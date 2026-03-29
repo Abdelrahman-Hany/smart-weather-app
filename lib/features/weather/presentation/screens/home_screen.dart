@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/locale_cubit.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../../core/utils/weather_descriptions.dart';
 import '../../../../core/utils/weather_utils.dart';
@@ -115,6 +116,12 @@ class _HomeScreenState extends State<HomeScreen>
         final activeData = state.activeLocationData;
         final colors = _getBackgroundColors(activeData);
 
+        // On desktop/tablet: two-column layout
+        if (context.isTabletOrLarger) {
+          return _buildDesktopLayout(context, state, activeData, colors);
+        }
+
+        // Mobile: original full-screen layout
         return Scaffold(
           extendBody: true,
           extendBodyBehindAppBar: true,
@@ -168,6 +175,214 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         );
       },
+    );
+  }
+
+  /// Desktop/tablet: left sidebar with location list + right weather panel.
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    WeatherState state,
+    LocationWeatherData? activeData,
+    List<Color> colors,
+  ) {
+    final l10n = context.l10n;
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: colors,
+          ),
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              // ── Left Sidebar ──────────────────────────────────────────
+              Container(
+                width: 300,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.18),
+                  border: Border(
+                    right: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    // Sidebar header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.wb_sunny_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            l10n.weather,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const Spacer(),
+                          // Language toggle
+                          IconButton(
+                            icon: const Icon(
+                              Icons.language_rounded,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
+                            tooltip: l10n.language,
+                            onPressed: _showLanguageSheet,
+                          ),
+                          // Profile / Auth
+                          BlocBuilder<AuthCubit, AuthState>(
+                            builder: (context, authState) {
+                              return IconButton(
+                                icon: Icon(
+                                  authState.isSignedIn
+                                      ? Icons.account_circle
+                                      : Icons.account_circle_outlined,
+                                  color: Colors.white70,
+                                  size: 22,
+                                ),
+                                tooltip:
+                                    authState.isSignedIn
+                                        ? l10n.profile
+                                        : l10n.signIn,
+                                onPressed: () {
+                                  if (authState.isSignedIn) {
+                                    context.push(AppRoutes.profile);
+                                  } else {
+                                    context.push(AppRoutes.login);
+                                  }
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Search bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      child: GestureDetector(
+                        onTap: _navigateToSearch,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.search_rounded,
+                                color: Colors.white60,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                l10n.searchCityHint,
+                                style: const TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Location list
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        itemCount: state.locations.length,
+                        itemBuilder: (context, index) {
+                          final locData = state.locations[index];
+                          final isActive = index == state.activeIndex;
+                          return _SidebarLocationTile(
+                            locData: locData,
+                            isActive: isActive,
+                            onTap: () {
+                              context
+                                  .read<WeatherCubit>()
+                                  .setActiveIndex(index);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                    // Manage locations button
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(
+                            Icons.format_list_bulleted_rounded,
+                            color: Colors.white70,
+                            size: 18,
+                          ),
+                          label: Text(
+                            l10n.manageLocations,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                          onPressed: _openManageLocations,
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ── Right Main Panel ──────────────────────────────────────
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (n) {
+                    _onVerticalScroll(n);
+                    return false;
+                  },
+                  child: activeData != null
+                      ? _buildLocationPage(context, activeData)
+                      : const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -733,6 +948,100 @@ class _DataProviderText extends StatelessWidget {
     return Text(
       context.l10n.dataProvidedBy,
       style: const TextStyle(color: Colors.white38, fontSize: 12),
+    );
+  }
+}
+
+/// A compact location tile used in the desktop sidebar.
+class _SidebarLocationTile extends StatelessWidget {
+  const _SidebarLocationTile({
+    required this.locData,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  final LocationWeatherData locData;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final location = locData.location;
+    final weather = locData.weather;
+    final cityName = weather?.cityName ?? location.cityName;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Material(
+        color: isActive
+            ? Colors.white.withValues(alpha: 0.2)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                if (location.isCurrentLocation)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 6),
+                    child: Icon(
+                      Icons.navigation_rounded,
+                      color: Colors.white70,
+                      size: 14,
+                    ),
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        cityName,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: isActive
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (location.country.isNotEmpty)
+                        Text(
+                          location.country,
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (weather != null)
+                  Text(
+                    '${weather.temperature.round()}°',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  )
+                else if (locData.status == WeatherStatus.loading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: Colors.white54,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

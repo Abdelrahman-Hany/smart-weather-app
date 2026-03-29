@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
@@ -152,17 +153,20 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
           appBar: _isSelectMode
               ? _buildSelectAppBar(state)
               : _buildNormalAppBar(),
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildAddCurrentLocationButton(state),
-              const SizedBox(height: 8),
-              Expanded(child: _buildLocationList(state)),
-              const Padding(
-                padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: _LocationsInfoText(),
-              ),
-            ],
+          body: MaxWidthBox(
+            maxWidth: 640,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAddCurrentLocationButton(state),
+                const SizedBox(height: 8),
+                Expanded(child: _buildLocationList(state)),
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
+                  child: _LocationsInfoText(),
+                ),
+              ],
+            ),
           ),
           bottomNavigationBar: _isSelectMode ? _buildSelectBottomBar() : null,
         );

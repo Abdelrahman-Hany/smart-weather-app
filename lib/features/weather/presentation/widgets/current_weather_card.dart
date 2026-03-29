@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../domain/entities/weather_entity.dart';
 
 class CurrentWeatherCard extends StatelessWidget {
@@ -15,6 +16,9 @@ class CurrentWeatherCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final l10n = context.l10n;
     final localeName = Localizations.localeOf(context).toLanguageTag();
+    final isLarge = context.isTabletOrLarger;
+    final iconSize = isLarge ? 130.0 : 100.0;
+    final tempFontSize = isLarge ? 110.0 : 96.0;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -32,8 +36,8 @@ class CurrentWeatherCard extends StatelessWidget {
             children: [
               Image.network(
                 ApiConstants.weatherIcon(weather.icon),
-                width: 100,
-                height: 100,
+                width: iconSize,
+                height: iconSize,
                 errorBuilder: (context, error, stackTrace) =>
                     const Icon(Icons.cloud, size: 80, color: Colors.white),
               ),
@@ -42,7 +46,7 @@ class CurrentWeatherCard extends StatelessWidget {
                 '${weather.temperature.round()}',
                 style: textTheme.displayLarge?.copyWith(
                   color: Colors.white,
-                  fontSize: 96,
+                  fontSize: tempFontSize,
                   height: 1,
                 ),
               ),

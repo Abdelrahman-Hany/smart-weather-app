@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/responsive.dart';
+
 class WeatherDetailRow extends StatelessWidget {
   final List<WeatherDetailItem> items;
 
@@ -7,10 +9,11 @@ class WeatherDetailRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final crossAxisCount = context.isTabletOrLarger ? 3 : 2;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GridView.count(
-        crossAxisCount: 2,
+        crossAxisCount: crossAxisCount,
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         childAspectRatio: 1.6,

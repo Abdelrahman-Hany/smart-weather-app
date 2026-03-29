@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/locale_cubit.dart';
 import '../../../../core/routing/app_router.dart';
+import '../../../../core/utils/responsive.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
 import '../../../premium/presentation/cubit/premium_state.dart';
@@ -48,11 +49,14 @@ class ProfileScreen extends StatelessWidget {
                 title: Text(l10n.profile),
                 backgroundColor: Colors.transparent,
               ),
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
+              body: MaxWidthBox(
+                maxWidth: 480,
+                alignment: Alignment.topCenter,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
                     // Avatar
                     CircleAvatar(
                       radius: 48,
@@ -236,7 +240,8 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
