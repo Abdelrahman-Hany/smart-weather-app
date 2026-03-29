@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
 
@@ -49,7 +50,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final trimmed = city.trim();
     _recentSearches.remove(trimmed);
     _recentSearches.insert(0, trimmed);
-    Navigator.pop(context, trimmed);
+    context.pop(trimmed);
   }
 
   @override
@@ -62,7 +63,7 @@ class _SearchScreenState extends State<SearchScreen> {
         elevation: 0.5,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => context.pop(),
         ),
         title: TextField(
           controller: _controller,

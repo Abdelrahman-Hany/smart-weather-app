@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
 import '../widgets/bottom_bar_action.dart';
 import '../widgets/label_dialog.dart';
 import '../widgets/location_card.dart';
-import 'search_screen.dart';
 
 class ManageLocationsScreen extends StatefulWidget {
   const ManageLocationsScreen({super.key});
@@ -111,7 +112,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
       _toggleSelection(index);
     } else {
       context.read<WeatherCubit>().setActiveIndex(index);
-      Navigator.pop(context);
+      context.pop();
     }
   }
 
@@ -129,10 +130,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   Future<void> _addCitySearch() async {
-    final city = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const SearchScreen()),
-    );
+    final city = await context.push<String>(AppRoutes.search);
     if (city != null && mounted) {
       context.read<WeatherCubit>().loadWeatherByCity(city);
     }
@@ -180,7 +178,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
       scrolledUnderElevation: 0,
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
-        onPressed: () => Navigator.pop(context),
+        onPressed: () => context.pop(),
       ),
       title: Text(
         l10n.weather,

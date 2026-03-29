@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
-import '../../../premium/presentation/screens/premium_screen.dart';
 
 /// Checks if the user is authenticated (non-anonymous) and has premium.
 /// If not, shows appropriate gate screen instead of the child.
@@ -47,12 +47,7 @@ class PremiumGate extends StatelessWidget {
       title: l10n.signInRequiredTitle,
       description: l10n.signInRequiredDescription,
       actionLabel: l10n.signIn,
-      onAction: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      },
+      onAction: () => context.push(AppRoutes.login),
     );
   }
 
@@ -64,12 +59,7 @@ class PremiumGate extends StatelessWidget {
       title: l10n.accountRequiredTitle,
       description: l10n.accountRequiredDescription,
       actionLabel: l10n.createAccount,
-      onAction: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      },
+      onAction: () => context.push(AppRoutes.login),
     );
   }
 
@@ -81,12 +71,7 @@ class PremiumGate extends StatelessWidget {
       title: l10n.premiumFeatureTitle,
       description: l10n.premiumFeatureDescription,
       actionLabel: l10n.upgradeToPremium,
-      onAction: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const PremiumScreen()),
-        );
-      },
+      onAction: () => context.push(AppRoutes.premium),
     );
   }
 }

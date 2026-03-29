@@ -6,6 +6,7 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_cubit.dart';
+import 'core/routing/app_router.dart';
 import 'core/secrets/app_secrets.dart';
 import 'core/theme/app_theme.dart';
 import 'dependency_injection.dart';
@@ -13,7 +14,6 @@ import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/cubit/auth_state.dart';
 import 'features/premium/presentation/cubit/premium_cubit.dart';
 import 'features/weather/presentation/cubit/weather_cubit.dart';
-import 'features/weather/presentation/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,8 +41,9 @@ void main() async {
 class MyApp extends StatelessWidget {
   final AuthCubit authCubit;
   final PremiumCubit premiumCubit;
+  final _router = createAppRouter();
 
-  const MyApp({super.key, required this.authCubit, required this.premiumCubit});
+  MyApp({super.key, required this.authCubit, required this.premiumCubit});
 
   @override
   Widget build(BuildContext context) {
@@ -65,13 +66,14 @@ class MyApp extends StatelessWidget {
         },
         child: BlocBuilder<LocaleCubit, Locale>(
           builder: (context, locale) {
-            return MaterialApp(
+            return MaterialApp.router(
               onGenerateTitle: (context) => context.l10n.appTitle,
               debugShowCheckedModeBanner: false,
               theme: AppTheme.lightTheme,
               darkTheme: AppTheme.darkTheme,
               themeMode: ThemeMode.light,
               locale: locale,
+              routerConfig: _router,
               supportedLocales: AppLocalizations.supportedLocales,
               localizationsDelegates: const [
                 AppLocalizations.delegate,
@@ -79,7 +81,6 @@ class MyApp extends StatelessWidget {
                 GlobalWidgetsLocalizations.delegate,
                 GlobalCupertinoLocalizations.delegate,
               ],
-              home: const HomeScreen(),
             );
           },
         ),

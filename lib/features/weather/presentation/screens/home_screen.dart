@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/locale_cubit.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../../core/utils/weather_descriptions.dart';
 import '../../../../core/utils/weather_utils.dart';
-import '../../../ai_recommendation/presentation/screens/ai_outfit_screen.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
-import '../../../auth/presentation/screens/profile_screen.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
 import '../../../premium/presentation/cubit/premium_state.dart';
 import '../../domain/entities/weather_entity.dart';
@@ -21,8 +20,6 @@ import '../widgets/daily_forecast.dart';
 import '../widgets/hourly_forecast.dart';
 import '../widgets/sunrise_sunset_widget.dart';
 import '../widgets/weather_detail_row.dart';
-import 'manage_locations_screen.dart';
-import 'search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -500,10 +497,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _navigateToSearch() async {
-    final city = await Navigator.push<String>(
-      context,
-      MaterialPageRoute(builder: (_) => const SearchScreen()),
-    );
+    final city = await context.push<String>(AppRoutes.search);
     if (city != null && mounted) {
       await context.read<WeatherCubit>().loadWeatherByCity(city);
       _syncPageController();
@@ -511,10 +505,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   void _openManageLocations() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ManageLocationsScreen()),
-    );
+    await context.push<void>(AppRoutes.manageLocations);
     if (!mounted) return;
     _syncPageController();
     if (!_showBottomBar) {
@@ -560,15 +551,9 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 onPressed: () {
                   if (authState.isSignedIn) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                    );
+                    context.push(AppRoutes.profile);
                   } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
+                    context.push(AppRoutes.login);
                   }
                 },
                 tooltip: authState.isSignedIn ? l10n.profile : l10n.signIn,
@@ -602,12 +587,7 @@ class _HomeScreenState extends State<HomeScreen>
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AiOutfitScreen(weather: weather),
-                  ),
-                );
+                context.push(AppRoutes.aiOutfit, extra: weather);
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/locale_cubit.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
 import '../../../premium/presentation/cubit/premium_state.dart';
-import '../../../premium/presentation/screens/premium_screen.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
-import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -30,7 +30,11 @@ class ProfileScreen extends StatelessWidget {
           context.read<AuthCubit>().clearError();
         }
         if (state.status == AuthStatus.unauthenticated) {
-          Navigator.of(context).pop();
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(AppRoutes.home);
+          }
         }
       },
       builder: (context, authState) {
@@ -149,12 +153,7 @@ class ProfileScreen extends StatelessWidget {
                               const SizedBox(height: 16),
                               FilledButton(
                                 onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                  );
+                                  context.push(AppRoutes.login);
                                 },
                                 child: Text(l10n.createAccount),
                               ),
@@ -178,12 +177,7 @@ class ProfileScreen extends StatelessWidget {
                           subtitle: Text(l10n.premiumOutfitSubtitle),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const PremiumScreen(),
-                              ),
-                            );
+                            context.push(AppRoutes.premium);
                           },
                         ),
                       ),

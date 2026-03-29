@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/routing/app_router.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/screens/login_screen.dart';
 import '../cubit/premium_cubit.dart';
 import '../cubit/premium_state.dart';
 
@@ -187,12 +188,7 @@ class PremiumScreen extends StatelessWidget {
                             const SizedBox(height: 16),
                             FilledButton(
                               onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const LoginScreen(),
-                                  ),
-                                );
+                                context.push(AppRoutes.login);
                               },
                               child: Text(l10n.signInSignUp),
                             ),
