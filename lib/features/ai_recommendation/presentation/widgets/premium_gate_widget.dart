@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -39,12 +40,13 @@ class PremiumGate extends StatelessWidget {
   }
 
   Widget _buildAuthGate(BuildContext context) {
+    final l10n = context.l10n;
     return _GateCard(
       icon: Icons.lock_outline,
       iconColor: Colors.blue,
-      title: 'Sign In Required',
-      description: 'Please sign in to access AI outfit recommendations.',
-      actionLabel: 'Sign In',
+      title: l10n.signInRequiredTitle,
+      description: l10n.signInRequiredDescription,
+      actionLabel: l10n.signIn,
       onAction: () {
         Navigator.push(
           context,
@@ -55,13 +57,13 @@ class PremiumGate extends StatelessWidget {
   }
 
   Widget _buildAnonymousGate(BuildContext context) {
+    final l10n = context.l10n;
     return _GateCard(
       icon: Icons.account_circle_outlined,
       iconColor: Colors.orange,
-      title: 'Account Required',
-      description:
-          'Guest accounts cannot access premium features.\nCreate an account to unlock AI outfit recommendations.',
-      actionLabel: 'Create Account',
+      title: l10n.accountRequiredTitle,
+      description: l10n.accountRequiredDescription,
+      actionLabel: l10n.createAccount,
       onAction: () {
         Navigator.push(
           context,
@@ -72,13 +74,13 @@ class PremiumGate extends StatelessWidget {
   }
 
   Widget _buildPremiumGate(BuildContext context) {
+    final l10n = context.l10n;
     return _GateCard(
       icon: Icons.workspace_premium,
       iconColor: Colors.amber.shade700,
-      title: 'Premium Feature',
-      description:
-          'AI outfit recommendations are available exclusively for Premium members.',
-      actionLabel: 'Upgrade to Premium',
+      title: l10n.premiumFeatureTitle,
+      description: l10n.premiumFeatureDescription,
+      actionLabel: l10n.upgradeToPremium,
       onAction: () {
         Navigator.push(
           context,

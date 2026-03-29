@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../auth/presentation/screens/login_screen.dart';
@@ -13,6 +14,7 @@ class PremiumScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return BlocConsumer<PremiumCubit, PremiumState>(
       listenWhen: (prev, curr) =>
@@ -33,7 +35,7 @@ class PremiumScreen extends StatelessWidget {
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Premium'),
+            title: Text(l10n.premium),
             backgroundColor: Colors.transparent,
           ),
           body: SingleChildScrollView(
@@ -71,8 +73,8 @@ class PremiumScreen extends StatelessWidget {
                         size: 64,
                       ),
                       const SizedBox(height: 16),
-                      const Text(
-                        'Weather Premium',
+                      Text(
+                        l10n.weatherPremium,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -82,8 +84,8 @@ class PremiumScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         premiumState.isPremium
-                            ? 'You\'re a Premium member!'
-                            : 'Unlock AI-powered features',
+                            ? l10n.premiumMember
+                            : l10n.unlockAiFeatures,
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 16,
@@ -107,8 +109,8 @@ class PremiumScreen extends StatelessWidget {
                             size: 48,
                           ),
                           const SizedBox(height: 12),
-                          const Text(
-                            'Premium Active',
+                          Text(
+                            l10n.premiumActive,
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -117,7 +119,11 @@ class PremiumScreen extends StatelessWidget {
                           const SizedBox(height: 8),
                           if (premiumState.subscription?.expiresAt != null)
                             Text(
-                              'Expires: ${_formatDate(premiumState.subscription!.expiresAt!)}',
+                              l10n.expiresDate(
+                                _formatDate(
+                                  premiumState.subscription!.expiresAt!,
+                                ),
+                              ),
                               style: TextStyle(
                                 color: colorScheme.onSurfaceVariant,
                               ),
@@ -130,25 +136,22 @@ class PremiumScreen extends StatelessWidget {
                   // Features list
                   _buildFeatureItem(
                     icon: Icons.auto_awesome,
-                    title: 'AI Outfit Recommendations',
-                    description:
-                        'Get smart clothing suggestions based on current weather conditions',
+                    title: l10n.aiOutfitRecommendations,
+                    description: l10n.aiOutfitRecommendationsDesc,
                     color: Colors.purple,
                   ),
                   const SizedBox(height: 12),
                   _buildFeatureItem(
                     icon: Icons.shopping_bag_outlined,
-                    title: 'Shopping Links',
-                    description:
-                        'Find and buy recommended clothes from top retailers',
+                    title: l10n.shoppingLinks,
+                    description: l10n.shoppingLinksDesc,
                     color: Colors.blue,
                   ),
                   const SizedBox(height: 12),
                   _buildFeatureItem(
                     icon: Icons.tips_and_updates_outlined,
-                    title: 'Personalized Tips',
-                    description:
-                        'Weather-based activity and wardrobe planning tips',
+                    title: l10n.personalizedTips,
+                    description: l10n.personalizedTipsDesc,
                     color: Colors.teal,
                   ),
                   const SizedBox(height: 32),
@@ -169,16 +172,16 @@ class PremiumScreen extends StatelessWidget {
                               size: 32,
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Sign in required',
+                            Text(
+                              l10n.signInRequired,
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              'You need to create an account before purchasing Premium.',
+                            Text(
+                              l10n.signInRequiredPremium,
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 16),
@@ -191,7 +194,7 @@ class PremiumScreen extends StatelessWidget {
                                   ),
                                 );
                               },
-                              child: const Text('Sign In / Sign Up'),
+                              child: Text(l10n.signInSignUp),
                             ),
                           ],
                         ),
@@ -222,7 +225,7 @@ class PremiumScreen extends StatelessWidget {
                       // Fallback pricing when store products aren't loaded
                       _buildPricingCard(
                         context: context,
-                        title: 'Monthly',
+                        title: l10n.monthly,
                         price: '\$2.99',
                         period: '/month',
                         isPopular: false,
@@ -235,7 +238,7 @@ class PremiumScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       _buildPricingCard(
                         context: context,
-                        title: 'Yearly',
+                        title: l10n.yearly,
                         price: '\$19.99',
                         period: '/year',
                         isPopular: true,
@@ -263,7 +266,7 @@ class PremiumScreen extends StatelessWidget {
                           ? null
                           : () =>
                                 context.read<PremiumCubit>().restorePurchases(),
-                      child: const Text('Restore Purchases'),
+                      child: Text(l10n.restorePurchases),
                     ),
                   ],
                 ],
@@ -355,8 +358,8 @@ class PremiumScreen extends StatelessWidget {
                     color: Colors.amber.shade600,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'BEST VALUE',
+                  child: Text(
+                    context.l10n.bestValue,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 11,

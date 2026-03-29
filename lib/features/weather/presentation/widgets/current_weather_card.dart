@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/weather_entity.dart';
 
 class CurrentWeatherCard extends StatelessWidget {
@@ -12,6 +13,8 @@ class CurrentWeatherCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final l10n = context.l10n;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -19,7 +22,7 @@ class CurrentWeatherCard extends StatelessWidget {
         children: [
           const SizedBox(height: 4),
           Text(
-            DateFormat('EEEE, d MMMM').format(DateTime.now()),
+            DateFormat('EEEE, d MMMM', localeName).format(DateTime.now()),
             style: textTheme.bodyMedium?.copyWith(color: Colors.white70),
           ),
           const SizedBox(height: 24),
@@ -69,19 +72,19 @@ class CurrentWeatherCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'H: ${weather.tempMax.round()}°',
+                '${l10n.highShort}: ${weather.tempMax.round()}°',
                 style: textTheme.bodyLarge?.copyWith(color: Colors.white),
               ),
               const SizedBox(width: 16),
               Text(
-                'L: ${weather.tempMin.round()}°',
+                '${l10n.lowShort}: ${weather.tempMin.round()}°',
                 style: textTheme.bodyLarge?.copyWith(color: Colors.white70),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Feels like ${weather.feelsLike.round()}°',
+            l10n.feelsLikeTemp(weather.feelsLike.round()),
             style: textTheme.bodyMedium?.copyWith(color: Colors.white60),
           ),
         ],

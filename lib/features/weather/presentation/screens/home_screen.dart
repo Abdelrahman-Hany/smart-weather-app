@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/locale_cubit.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../../core/utils/weather_descriptions.dart';
 import '../../../../core/utils/weather_utils.dart';
@@ -173,10 +175,11 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildCityNameBar(LocationWeatherData? activeData, Color bgColor) {
+    final l10n = context.l10n;
     final cityName =
         activeData?.weather?.cityName ??
         activeData?.location.cityName ??
-        'Weather';
+        l10n.weather;
 
     return Positioned(
       top: 0,
@@ -205,6 +208,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildBottomBar(WeatherState state) {
+    final l10n = context.l10n;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
     return Container(
       padding: EdgeInsets.only(bottom: bottomPadding + 4, top: 8),
@@ -229,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen>
               size: 26,
             ),
             onPressed: _openManageLocations,
-            tooltip: 'Manage locations',
+            tooltip: l10n.manageLocations,
           ),
           Expanded(child: Center(child: _buildPageDots(state))),
           IconButton(
@@ -239,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen>
               size: 26,
             ),
             onPressed: _navigateToSearch,
-            tooltip: 'Search city',
+            tooltip: l10n.searchCity,
           ),
         ],
       ),
@@ -284,6 +288,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildInitialLoading() {
+    final l10n = context.l10n;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -293,16 +298,19 @@ class _HomeScreenState extends State<HomeScreen>
             colors: [Color(0xFF4FC3F7), Color(0xFF29B6F6), Color(0xFF039BE5)],
           ),
         ),
-        child: const SafeArea(
+        child: SafeArea(
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                SizedBox(height: 16),
+                const CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+                const SizedBox(height: 16),
                 Text(
-                  'Loading weather...',
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
+                  l10n.loadingWeather,
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -330,6 +338,7 @@ class _HomeScreenState extends State<HomeScreen>
     BuildContext context,
     LocationWeatherData locData,
   ) {
+    final l10n = context.l10n;
     final weather = locData.weather!;
     final cubit = context.read<WeatherCubit>();
 
@@ -350,7 +359,7 @@ class _HomeScreenState extends State<HomeScreen>
                 HourlyForecastWidget(
                   forecasts: locData.hourlyForecast,
                   summary:
-                      '${weather.description[0].toUpperCase()}${weather.description.substring(1)}. Low ${weather.tempMin.round()}\u00B0C.',
+                      '${weather.description[0].toUpperCase()}${weather.description.substring(1)}. ${l10n.lowTemperature(weather.tempMin.round())}',
                 ),
                 const SizedBox(height: 12),
                 DailyForecastWidget(forecasts: locData.dailyForecast),
@@ -359,15 +368,16 @@ class _HomeScreenState extends State<HomeScreen>
                   items: [
                     WeatherDetailItem(
                       icon: Icons.water_drop_outlined,
-                      label: 'Humidity',
+                      label: l10n.humidity,
                       value: '${weather.humidity}%',
                       subtitle: WeatherDescriptions.humidityLabel(
+                        context,
                         weather.humidity,
                       ),
                     ),
                     WeatherDetailItem(
                       icon: Icons.air_rounded,
-                      label: 'Wind',
+                      label: l10n.wind,
                       value: '${weather.windSpeed.toStringAsFixed(1)} m/s',
                       subtitle: WeatherUtils.windDirectionFromDegrees(
                         weather.windDeg,
@@ -375,30 +385,35 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     WeatherDetailItem(
                       icon: Icons.compress_rounded,
-                      label: 'Pressure',
+                      label: l10n.pressure,
                       value: '${weather.pressure}',
                       subtitle: 'hPa',
                     ),
                     WeatherDetailItem(
                       icon: Icons.visibility_outlined,
-                      label: 'Visibility',
+                      label: l10n.visibility,
                       value:
                           '${(weather.visibility / 1000).toStringAsFixed(1)} km',
                       subtitle: WeatherDescriptions.visibilityLabel(
+                        context,
                         weather.visibility,
                       ),
                     ),
                     WeatherDetailItem(
                       icon: Icons.cloud_outlined,
-                      label: 'Cloudiness',
+                      label: l10n.cloudiness,
                       value: '${weather.clouds}%',
-                      subtitle: WeatherDescriptions.cloudLabel(weather.clouds),
+                      subtitle: WeatherDescriptions.cloudLabel(
+                        context,
+                        weather.clouds,
+                      ),
                     ),
                     WeatherDetailItem(
                       icon: Icons.thermostat_outlined,
-                      label: 'Feels Like',
+                      label: l10n.feelsLike,
                       value: '${weather.feelsLike.round()}\u00B0',
                       subtitle: WeatherDescriptions.feelsLikeLabel(
+                        context,
                         weather.temperature,
                         weather.feelsLike,
                       ),
@@ -413,10 +428,7 @@ class _HomeScreenState extends State<HomeScreen>
                 const SizedBox(height: 12),
                 const Padding(
                   padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'Data provided by OpenWeatherMap',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
-                  ),
+                  child: _DataProviderText(),
                 ),
                 const SizedBox(height: 56),
               ],
@@ -428,6 +440,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildErrorContent(BuildContext context, LocationWeatherData locData) {
+    final l10n = context.l10n;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -453,9 +466,9 @@ class _HomeScreenState extends State<HomeScreen>
                   onPressed: () =>
                       context.read<WeatherCubit>().loadWeatherByLocation(),
                   icon: const Icon(Icons.my_location, color: Colors.white),
-                  label: const Text(
-                    'Use Location',
-                    style: TextStyle(color: Colors.white),
+                  label: Text(
+                    l10n.useLocation,
+                    style: const TextStyle(color: Colors.white),
                   ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white54),
@@ -469,7 +482,7 @@ class _HomeScreenState extends State<HomeScreen>
                 FilledButton.icon(
                   onPressed: _navigateToSearch,
                   icon: const Icon(Icons.search),
-                  label: const Text('Search City'),
+                  label: Text(l10n.searchCity),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white24,
                     padding: const EdgeInsets.symmetric(
@@ -519,12 +532,22 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildTopRightActions(BuildContext context) {
-    return Positioned(
+    final l10n = context.l10n;
+    return PositionedDirectional(
       top: 4,
-      right: 4,
+      end: 4,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          IconButton(
+            icon: const Icon(
+              Icons.language_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+            tooltip: l10n.language,
+            onPressed: _showLanguageSheet,
+          ),
           BlocBuilder<AuthCubit, AuthState>(
             builder: (context, authState) {
               return IconButton(
@@ -548,7 +571,7 @@ class _HomeScreenState extends State<HomeScreen>
                     );
                   }
                 },
-                tooltip: authState.isSignedIn ? 'Profile' : 'Sign In',
+                tooltip: authState.isSignedIn ? l10n.profile : l10n.signIn,
               );
             },
           ),
@@ -561,6 +584,7 @@ class _HomeScreenState extends State<HomeScreen>
     BuildContext context,
     WeatherEntity weather,
   ) {
+    final l10n = context.l10n;
     return BlocBuilder<PremiumCubit, PremiumState>(
       builder: (context, premiumState) {
         return Container(
@@ -611,9 +635,9 @@ class _HomeScreenState extends State<HomeScreen>
                         children: [
                           Row(
                             children: [
-                              const Text(
-                                'AI Outfit Advisor',
-                                style: TextStyle(
+                              Text(
+                                l10n.aiOutfitAdvisor,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -643,9 +667,9 @@ class _HomeScreenState extends State<HomeScreen>
                             ],
                           ),
                           const SizedBox(height: 2),
-                          const Text(
-                            'What should I wear today?',
-                            style: TextStyle(
+                          Text(
+                            l10n.aiOutfitSubtitle,
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
                             ),
@@ -672,5 +696,63 @@ class _HomeScreenState extends State<HomeScreen>
       );
     }
     return const [Color(0xFF4FC3F7), Color(0xFF29B6F6), Color(0xFF039BE5)];
+  }
+
+  Future<void> _showLanguageSheet() async {
+    final cubit = context.read<LocaleCubit>();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) {
+            final l10n = sheetContext.l10n;
+            final current = locale.languageCode;
+
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(title: Text(l10n.language)),
+                  ListTile(
+                    title: Text(l10n.english),
+                    trailing: current == 'en'
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () {
+                      cubit.setLanguageCode('en');
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                  ListTile(
+                    title: Text(l10n.arabic),
+                    trailing: current == 'ar'
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () {
+                      cubit.setLanguageCode('ar');
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _DataProviderText extends StatelessWidget {
+  const _DataProviderText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      context.l10n.dataProvidedBy,
+      style: const TextStyle(color: Colors.white38, fontSize: 12),
+    );
   }
 }

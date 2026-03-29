@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/forecast_entity.dart';
 
 const double _itemWidth = 80;
@@ -21,6 +22,8 @@ class HourlyForecastWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (forecasts.isEmpty) return const SizedBox.shrink();
+    final l10n = context.l10n;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
 
     final temps = forecasts.map((f) => f.temperature).toList();
     final minTemp = temps.reduce((a, b) => a < b ? a : b);
@@ -80,8 +83,11 @@ class HourlyForecastWidget extends StatelessWidget {
                           width: _itemWidth,
                           child: _HourlyColumn(
                             time: isFirst
-                                ? 'Now'
-                                : DateFormat('h a').format(forecast.dateTime),
+                                ? l10n.now
+                                : DateFormat(
+                                    'h a',
+                                    localeName,
+                                  ).format(forecast.dateTime),
                             icon: forecast.icon,
                             temperature: forecast.temperature,
                             pop: forecast.pop,

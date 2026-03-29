@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../cubit/weather_cubit.dart';
 import '../cubit/weather_state.dart';
@@ -50,18 +51,17 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   void _deleteSelected() {
     if (_selectedIndices.isEmpty) return;
     final cubit = context.read<WeatherCubit>();
+    final l10n = context.l10n;
 
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete locations'),
-        content: Text(
-          'Remove ${_selectedIndices.length} location${_selectedIndices.length > 1 ? 's' : ''}?',
-        ),
+        title: Text(l10n.deleteLocationsTitle),
+        content: Text(l10n.removeLocationsContent(_selectedIndices.length)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
@@ -72,7 +72,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
                 _selectedIndices.clear();
               });
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -162,14 +162,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
               Expanded(child: _buildLocationList(state)),
               const Padding(
                 padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
-                child: Text(
-                  'The location at the top of the list will be used to provide weather information in notifications and other connected services.',
-                  style: TextStyle(
-                    color: Colors.black54,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
+                child: _LocationsInfoText(),
               ),
             ],
           ),
@@ -180,6 +173,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   PreferredSizeWidget _buildNormalAppBar() {
+    final l10n = context.l10n;
     return AppBar(
       backgroundColor: const Color(0xFFF2F2F7),
       elevation: 0,
@@ -188,9 +182,9 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
         icon: const Icon(Icons.arrow_back_rounded, color: Colors.black87),
         onPressed: () => Navigator.pop(context),
       ),
-      title: const Text(
-        'Weather',
-        style: TextStyle(
+      title: Text(
+        l10n.weather,
+        style: const TextStyle(
           color: Colors.black87,
           fontSize: 22,
           fontWeight: FontWeight.w700,
@@ -207,7 +201,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
             if (value == 'select') _toggleSelectMode();
           },
           itemBuilder: (_) => const [
-            PopupMenuItem(value: 'select', child: Text('Select')),
+            PopupMenuItem(value: 'select', child: _SelectMenuLabel()),
           ],
         ),
       ],
@@ -215,6 +209,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   PreferredSizeWidget _buildSelectAppBar(WeatherState state) {
+    final l10n = context.l10n;
     final total = state.locations.length;
     final allSelected = _selectedIndices.length == total;
 
@@ -230,10 +225,10 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
           color: allSelected ? const Color(0xFF4285F4) : Colors.black45,
         ),
         onPressed: () => _selectAll(total),
-        tooltip: 'Select all',
+        tooltip: l10n.selectAll,
       ),
       title: Text(
-        '${_selectedIndices.length} selected',
+        l10n.selectedCount(_selectedIndices.length),
         style: const TextStyle(
           color: Colors.black87,
           fontSize: 20,
@@ -243,9 +238,9 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
       actions: [
         TextButton(
           onPressed: _toggleSelectMode,
-          child: const Text(
-            'Cancel',
-            style: TextStyle(
+          child: Text(
+            l10n.cancel,
+            style: const TextStyle(
               color: Colors.black87,
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -257,6 +252,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   Widget _buildAddCurrentLocationButton(WeatherState state) {
+    final l10n = context.l10n;
     final hasGps = state.locations.any((l) => l.location.isCurrentLocation);
 
     return Padding(
@@ -274,7 +270,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
                 )
               : null,
           title: Text(
-            hasGps ? 'Update current location' : 'Add current location',
+            hasGps ? l10n.updateCurrentLocation : l10n.addCurrentLocation,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
           shape: RoundedRectangleBorder(
@@ -287,14 +283,15 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   Widget _buildLocationList(WeatherState state) {
+    final l10n = context.l10n;
     if (state.locations.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Text(
-            'No locations saved yet.\nAdd a city or use your current location.',
+            l10n.noLocationsSaved,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54, fontSize: 15),
+            style: const TextStyle(color: Colors.black54, fontSize: 15),
           ),
         ),
       );
@@ -319,6 +316,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
   }
 
   Widget _buildSelectBottomBar() {
+    final l10n = context.l10n;
     final hasSelection = _selectedIndices.isNotEmpty;
     final state = context.read<WeatherCubit>().state;
 
@@ -346,7 +344,7 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
         children: [
           BottomBarAction(
             icon: Icons.do_not_disturb_on_outlined,
-            label: 'Remove label',
+            label: l10n.removeLabel,
             enabled: hasSelection && anyHasLabel,
             onPressed: hasSelection && anyHasLabel
                 ? _removeLabelsForSelected
@@ -354,18 +352,39 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
           ),
           BottomBarAction(
             icon: Icons.edit_outlined,
-            label: anyHasLabel ? 'Edit label' : 'Add label',
+            label: anyHasLabel ? l10n.editLabel : l10n.addLabel,
             enabled: hasSelection,
             onPressed: hasSelection ? _editLabelForSelected : null,
           ),
           BottomBarAction(
             icon: Icons.delete_outline_rounded,
-            label: 'Delete',
+            label: l10n.delete,
             enabled: hasSelection,
             onPressed: hasSelection ? _deleteSelected : null,
           ),
         ],
       ),
     );
+  }
+}
+
+class _LocationsInfoText extends StatelessWidget {
+  const _LocationsInfoText();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      context.l10n.locationsInfo,
+      style: const TextStyle(color: Colors.black54, fontSize: 13, height: 1.4),
+    );
+  }
+}
+
+class _SelectMenuLabel extends StatelessWidget {
+  const _SelectMenuLabel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(context.l10n.select);
   }
 }

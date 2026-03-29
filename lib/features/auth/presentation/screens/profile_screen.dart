@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/locale_cubit.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
 import '../../../premium/presentation/cubit/premium_state.dart';
@@ -15,6 +17,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return BlocConsumer<AuthCubit, AuthState>(
       listenWhen: (prev, curr) =>
@@ -38,7 +41,7 @@ class ProfileScreen extends StatelessWidget {
 
             return Scaffold(
               appBar: AppBar(
-                title: const Text('Profile'),
+                title: Text(l10n.profile),
                 backgroundColor: Colors.transparent,
               ),
               body: SingleChildScrollView(
@@ -68,7 +71,7 @@ class ProfileScreen extends StatelessWidget {
                     // Name
                     Text(
                       user?.displayName ??
-                          (user?.isAnonymous == true ? 'Guest' : 'User'),
+                          (user?.isAnonymous == true ? l10n.guest : l10n.user),
                       style: Theme.of(context).textTheme.headlineMedium,
                     ),
                     const SizedBox(height: 4),
@@ -99,13 +102,13 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.star, color: Colors.white, size: 16),
                             SizedBox(width: 4),
                             Text(
-                              'PREMIUM',
+                              l10n.premiumBadge,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -133,13 +136,13 @@ class ProfileScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Guest Account',
+                                l10n.guestAccount,
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Create an account to keep your data and access premium features.',
+                                l10n.guestAccountDescription,
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.bodyMedium,
                               ),
@@ -153,7 +156,7 @@ class ProfileScreen extends StatelessWidget {
                                     ),
                                   );
                                 },
-                                child: const Text('Create Account'),
+                                child: Text(l10n.createAccount),
                               ),
                             ],
                           ),
@@ -171,10 +174,8 @@ class ProfileScreen extends StatelessWidget {
                             color: Colors.amber.shade700,
                             size: 32,
                           ),
-                          title: const Text('Upgrade to Premium'),
-                          subtitle: const Text(
-                            'Get AI-powered outfit recommendations',
-                          ),
+                          title: Text(l10n.upgradeToPremium),
+                          subtitle: Text(l10n.premiumOutfitSubtitle),
                           trailing: const Icon(Icons.chevron_right),
                           onTap: () {
                             Navigator.push(
@@ -196,12 +197,23 @@ class ProfileScreen extends StatelessWidget {
                           if (!authState.isAnonymous)
                             ListTile(
                               leading: const Icon(Icons.email_outlined),
-                              title: const Text('Email'),
-                              subtitle: Text(user?.email ?? 'Not set'),
+                              title: Text(l10n.email),
+                              subtitle: Text(user?.email ?? l10n.notSet),
                             ),
                           ListTile(
+                            leading: const Icon(Icons.language_rounded),
+                            title: Text(l10n.language),
+                            subtitle: Text(
+                              context.watch<LocaleCubit>().state.languageCode ==
+                                      'ar'
+                                  ? l10n.arabic
+                                  : l10n.english,
+                            ),
+                            onTap: () => _showLanguageSheet(context),
+                          ),
+                          ListTile(
                             leading: const Icon(Icons.info_outline),
-                            title: const Text('App Version'),
+                            title: Text(l10n.appVersion),
                             subtitle: const Text('1.0.0'),
                           ),
                         ],
@@ -217,8 +229,8 @@ class ProfileScreen extends StatelessWidget {
                         icon: const Icon(Icons.logout),
                         label: Text(
                           authState.isAnonymous
-                              ? 'Exit Guest Mode'
-                              : 'Sign Out',
+                              ? l10n.exitGuestMode
+                              : l10n.signOut,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: colorScheme.error,
@@ -232,6 +244,52 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showLanguageSheet(BuildContext context) async {
+    final cubit = context.read<LocaleCubit>();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) {
+            final l10n = sheetContext.l10n;
+            final current = locale.languageCode;
+
+            return SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(title: Text(l10n.language)),
+                  ListTile(
+                    title: Text(l10n.english),
+                    trailing: current == 'en'
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () {
+                      cubit.setLanguageCode('en');
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                  ListTile(
+                    title: Text(l10n.arabic),
+                    trailing: current == 'ar'
+                        ? const Icon(Icons.check_rounded)
+                        : null,
+                    onTap: () {
+                      cubit.setLanguageCode('ar');
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+                ],
               ),
             );
           },

@@ -26,9 +26,10 @@ class LocationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final weather = locData.weather;
     final location = locData.location;
-    final dateStr = DateFormat(
-      'E, MMMM d \'at\' h:mm a',
-    ).format(DateTime.now());
+    final localeName = Localizations.localeOf(context).toLanguageTag();
+    final dateStr = DateFormat.yMMMMEEEEd(
+      localeName,
+    ).add_jm().format(DateTime.now());
     final hasLabel = location.label != null && location.label!.isNotEmpty;
 
     return Padding(

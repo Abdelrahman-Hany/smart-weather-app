@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import 'label_helpers.dart';
 
 /// Dialog for adding or editing a custom label.
@@ -40,6 +41,7 @@ class _LabelDialogState extends State<LabelDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: Padding(
@@ -49,7 +51,7 @@ class _LabelDialogState extends State<LabelDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _isEditing ? 'Edit custom label' : 'Add a custom label',
+              _isEditing ? l10n.editCustomLabel : l10n.addCustomLabel,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -89,7 +91,7 @@ class _LabelDialogState extends State<LabelDialog> {
               children: presetLabels.entries.map((entry) {
                 return ActionChip(
                   avatar: Icon(entry.value, size: 18, color: Colors.black54),
-                  label: Text(entry.key),
+                  label: Text(localizedPresetLabel(entry.key, l10n)),
                   labelStyle: const TextStyle(
                     fontSize: 13,
                     color: Colors.black87,
@@ -114,9 +116,9 @@ class _LabelDialogState extends State<LabelDialog> {
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(
+                    child: Text(
+                      l10n.cancel,
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -133,7 +135,7 @@ class _LabelDialogState extends State<LabelDialog> {
                       return TextButton(
                         onPressed: canSubmit ? _submit : null,
                         child: Text(
-                          _isEditing ? 'Save' : 'Add',
+                          _isEditing ? l10n.save : l10n.add,
                           style: TextStyle(
                             color: canSubmit
                                 ? const Color(0xFF4285F4)

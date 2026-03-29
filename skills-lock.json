@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "flutter-implementing-navigation-and-routing": {
+      "source": "flutter/skills",
+      "sourceType": "github",
+      "computedHash": "7247406b26de6e3711bc654c8c1e09fb1abf21b8fc465174cef4ffb563726d3f"
+    }
+  }
+}

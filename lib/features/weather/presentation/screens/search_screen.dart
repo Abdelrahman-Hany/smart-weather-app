@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/localization/app_localizations.dart';
+
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
 
@@ -52,6 +54,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -64,10 +67,10 @@ class _SearchScreenState extends State<SearchScreen> {
         title: TextField(
           controller: _controller,
           focusNode: _focusNode,
-          decoration: const InputDecoration(
-            hintText: 'Search city...',
+          decoration: InputDecoration(
+            hintText: l10n.searchCityHint,
             border: InputBorder.none,
-            hintStyle: TextStyle(color: Colors.grey),
+            hintStyle: const TextStyle(color: Colors.grey),
           ),
           textInputAction: TextInputAction.search,
           onSubmitted: _submitCity,
@@ -93,12 +96,12 @@ class _SearchScreenState extends State<SearchScreen> {
               _buildSearchAction(),
             ] else ...[
               if (_recentSearches.isNotEmpty) ...[
-                _buildSectionHeader('Recent Searches'),
+                _buildSectionHeader(l10n.recentSearches),
                 const SizedBox(height: 8),
                 _buildRecentSearches(),
                 const SizedBox(height: 24),
               ],
-              _buildSectionHeader('Popular Cities'),
+              _buildSectionHeader(l10n.popularCities),
               const SizedBox(height: 12),
               _buildPopularCities(),
             ],
@@ -109,6 +112,7 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Widget _buildSearchAction() {
+    final l10n = context.l10n;
     return Card(
       elevation: 0,
       color: Colors.white,
@@ -116,7 +120,7 @@ class _SearchScreenState extends State<SearchScreen> {
       child: ListTile(
         leading: const Icon(Icons.search_rounded, color: Color(0xFF4285F4)),
         title: Text(
-          'Search for "${_controller.text}"',
+          l10n.searchForCity(_controller.text),
           style: const TextStyle(
             color: Color(0xFF4285F4),
             fontWeight: FontWeight.w500,

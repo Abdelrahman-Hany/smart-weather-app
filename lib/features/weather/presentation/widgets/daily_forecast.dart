@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/forecast_entity.dart';
 
 class DailyForecastWidget extends StatelessWidget {
@@ -50,7 +51,7 @@ class _DailyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dayName = _getDayName(forecast.date);
+    final dayName = _getDayName(context, forecast.date);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
@@ -141,14 +142,16 @@ class _DailyRow extends StatelessWidget {
     );
   }
 
-  String _getDayName(DateTime date) {
+  String _getDayName(BuildContext context, DateTime date) {
+    final l10n = context.l10n;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final forecastDay = DateTime(date.year, date.month, date.day);
 
-    if (forecastDay == today) return 'Today';
-    if (forecastDay == tomorrow) return 'Tmrw';
-    return DateFormat('EEE').format(date);
+    if (forecastDay == today) return l10n.today;
+    if (forecastDay == tomorrow) return l10n.tomorrowShort;
+    return DateFormat('EEE', localeName).format(date);
   }
 }

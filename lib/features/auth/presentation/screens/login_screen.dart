@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/utils/show_snackbar.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
@@ -31,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = context.l10n;
 
     return BlocConsumer<AuthCubit, AuthState>(
       listenWhen: (prev, curr) =>
@@ -50,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return Scaffold(
           backgroundColor: colorScheme.surface,
           appBar: AppBar(
-            title: Text(_isSignUp ? 'Create Account' : 'Sign In'),
+            title: Text(_isSignUp ? l10n.createAccount : l10n.signIn),
             backgroundColor: Colors.transparent,
           ),
           body: SafeArea(
@@ -67,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Weather Premium',
+                    l10n.weatherPremium,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -77,8 +79,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _isSignUp
-                        ? 'Create an account to unlock premium features'
-                        : 'Sign in to access your premium features',
+                        ? l10n.createAccountUnlockPremium
+                        : l10n.signInAccessPremium,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
@@ -95,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextFormField(
                             controller: _nameController,
                             decoration: InputDecoration(
-                              labelText: 'Name (optional)',
+                              labelText: l10n.nameOptional,
                               prefixIcon: const Icon(Icons.person_outline),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -108,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextFormField(
                           controller: _emailController,
                           decoration: InputDecoration(
-                            labelText: 'Email',
+                            labelText: l10n.email,
                             prefixIcon: const Icon(Icons.email_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -118,10 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           textInputAction: TextInputAction.next,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
+                              return l10n.pleaseEnterEmail;
                             }
                             if (!value.contains('@') || !value.contains('.')) {
-                              return 'Please enter a valid email';
+                              return l10n.pleaseEnterValidEmail;
                             }
                             return null;
                           },
@@ -130,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         TextFormField(
                           controller: _passwordController,
                           decoration: InputDecoration(
-                            labelText: 'Password',
+                            labelText: l10n.password,
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
@@ -152,10 +154,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           textInputAction: TextInputAction.done,
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
+                              return l10n.pleaseEnterPassword;
                             }
                             if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
+                              return l10n.passwordMinLength;
                             }
                             return null;
                           },
@@ -185,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           )
                         : Text(
-                            _isSignUp ? 'Create Account' : 'Sign In',
+                            _isSignUp ? l10n.createAccount : l10n.signIn,
                             style: const TextStyle(fontSize: 16),
                           ),
                   ),
@@ -202,8 +204,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                     child: Text(
                       _isSignUp
-                          ? 'Already have an account? Sign In'
-                          : "Don't have an account? Sign Up",
+                          ? l10n.alreadyHaveAccount
+                          : l10n.dontHaveAccount,
                     ),
                   ),
 
@@ -239,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       size: 28,
                       color: colorScheme.primary,
                     ),
-                    label: const Text('Continue with Google'),
+                    label: Text(l10n.continueWithGoogle),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -256,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ? null
                         : () => context.read<AuthCubit>().signInAnonymously(),
                     icon: const Icon(Icons.person_outline),
-                    label: const Text('Continue as Guest'),
+                    label: Text(l10n.continueAsGuest),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),

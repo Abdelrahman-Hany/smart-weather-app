@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../weather/domain/entities/weather_entity.dart';
 import '../../domain/entities/clothing_recommendation_entity.dart';
 import '../cubit/ai_recommendation_cubit.dart';
@@ -16,9 +17,10 @@ class AiRecommendationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('AI Outfit Advisor'),
+        title: Text(l10n.aiOutfitAdvisor),
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
@@ -26,7 +28,7 @@ class AiRecommendationScreen extends StatelessWidget {
             onPressed: () => context
                 .read<AiRecommendationCubit>()
                 .getRecommendations(weather),
-            tooltip: 'Regenerate',
+            tooltip: l10n.regenerate,
           ),
         ],
       ),
@@ -41,7 +43,7 @@ class AiRecommendationScreen extends StatelessWidget {
             case AiRecommendationStatus.error:
               return _buildError(
                 context,
-                state.errorMessage ?? 'Unknown error',
+                state.errorMessage ?? l10n.unknownError,
               );
           }
         },
@@ -80,12 +82,12 @@ class AiRecommendationScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'AI is analyzing the weather...',
+                  context.l10n.aiAnalyzingWeather,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Preparing outfit recommendations',
+                  context.l10n.preparingRecommendations,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -166,7 +168,7 @@ class AiRecommendationScreen extends StatelessWidget {
 
           // Clothing items
           Text(
-            'Recommended Outfit',
+            context.l10n.recommendedOutfit,
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -184,7 +186,7 @@ class AiRecommendationScreen extends StatelessWidget {
           if (recommendation.tips.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text(
-              'Weather Tips',
+              context.l10n.weatherTips,
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -298,7 +300,7 @@ class AiRecommendationScreen extends StatelessWidget {
               const Divider(),
               const SizedBox(height: 8),
               Text(
-                'Shop this item',
+                context.l10n.shopThisItem,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.5,
@@ -362,7 +364,11 @@ class AiRecommendationScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${weather.description} · Feels like ${weather.feelsLike.round()}°C · Wind ${weather.windSpeed.toStringAsFixed(1)} m/s',
+                  context.l10n.weatherSummaryDetails(
+                    weather.description,
+                    weather.feelsLike.round(),
+                    weather.windSpeed,
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: colorScheme.onSurfaceVariant,
@@ -390,7 +396,7 @@ class AiRecommendationScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Oops! Something went wrong',
+              context.l10n.oopsSomethingWrong,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
@@ -407,7 +413,7 @@ class AiRecommendationScreen extends StatelessWidget {
                   .read<AiRecommendationCubit>()
                   .getRecommendations(weather),
               icon: const Icon(Icons.refresh),
-              label: const Text('Try Again'),
+              label: Text(context.l10n.tryAgain),
             ),
           ],
         ),

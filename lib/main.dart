@@ -1,8 +1,11 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 
+import 'core/localization/app_localizations.dart';
+import 'core/localization/locale_cubit.dart';
 import 'core/secrets/app_secrets.dart';
 import 'core/theme/app_theme.dart';
 import 'dependency_injection.dart';
@@ -45,6 +48,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<LocaleCubit>.value(value: sl<LocaleCubit>()),
         BlocProvider<AuthCubit>.value(value: authCubit),
         BlocProvider<PremiumCubit>.value(value: premiumCubit),
         BlocProvider(create: (_) => sl<WeatherCubit>()..initialize()),
@@ -59,13 +63,25 @@ class MyApp extends StatelessWidget {
             context.read<PremiumCubit>().init(state.user!.uid);
           }
         },
-        child: MaterialApp(
-          title: 'Weather',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: ThemeMode.light,
-          home: const HomeScreen(),
+        child: BlocBuilder<LocaleCubit, Locale>(
+          builder: (context, locale) {
+            return MaterialApp(
+              onGenerateTitle: (context) => context.l10n.appTitle,
+              debugShowCheckedModeBanner: false,
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: ThemeMode.light,
+              locale: locale,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              home: const HomeScreen(),
+            );
+          },
         ),
       ),
     );

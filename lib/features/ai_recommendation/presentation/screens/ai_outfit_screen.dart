@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../../../dependency_injection.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../premium/presentation/cubit/premium_cubit.dart';
@@ -26,7 +27,7 @@ class AiOutfitScreen extends StatelessWidget {
     if (!hasAccess) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('AI Outfit Advisor'),
+          title: Text(context.l10n.aiOutfitAdvisor),
           backgroundColor: Colors.transparent,
         ),
         body: const PremiumGate(child: SizedBox.shrink()),

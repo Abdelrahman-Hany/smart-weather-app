@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/localization/locale_cubit.dart';
 
 // Weather feature
 import 'features/weather/data/datasources/geo_location_service.dart';
@@ -152,4 +153,7 @@ Future<void> initDependencies() async {
       getClothingRecommendations: sl<GetClothingRecommendations>(),
     ),
   );
+
+  // Locale (singleton — app-wide language preference)
+  sl.registerLazySingleton(() => LocaleCubit(sl<SharedPreferences>()));
 }

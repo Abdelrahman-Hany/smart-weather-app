@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../core/localization/app_localizations.dart';
 import '../../domain/entities/weather_entity.dart';
 
 class SunriseSunsetWidget extends StatelessWidget {
@@ -10,6 +11,8 @@ class SunriseSunsetWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final localeName = Localizations.localeOf(context).toLanguageTag();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -25,7 +28,7 @@ class SunriseSunsetWidget extends StatelessWidget {
               Icon(Icons.wb_twilight_rounded, color: Colors.white70, size: 16),
               const SizedBox(width: 6),
               Text(
-                'SUNRISE & SUNSET',
+                l10n.sunriseSunset,
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -41,15 +44,15 @@ class SunriseSunsetWidget extends StatelessWidget {
             children: [
               _SunTimeItem(
                 icon: Icons.wb_sunny_rounded,
-                label: 'Sunrise',
-                time: DateFormat('HH:mm').format(weather.sunrise),
+                label: l10n.sunrise,
+                time: DateFormat('HH:mm', localeName).format(weather.sunrise),
                 iconColor: const Color(0xFFFFB74D),
               ),
               Container(width: 1, height: 50, color: Colors.white24),
               _SunTimeItem(
                 icon: Icons.nights_stay_rounded,
-                label: 'Sunset',
-                time: DateFormat('HH:mm').format(weather.sunset),
+                label: l10n.sunset,
+                time: DateFormat('HH:mm', localeName).format(weather.sunset),
                 iconColor: const Color(0xFF7986CB),
               ),
             ],
