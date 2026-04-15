@@ -1,9 +1,15 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:weather_app_sarmad/core/usecase/usecase.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/initialize_message_handlers.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/request_notification_permissions.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/start_token_sync_for_user.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/stop_token_sync.dart';
 
 import 'core/localization/app_localizations.dart';
 import 'core/localization/locale_cubit.dart';
@@ -17,11 +23,10 @@ import 'features/premium/presentation/cubit/premium_cubit.dart';
 import 'features/weather/presentation/cubit/weather_cubit.dart';
 import 'firebase_options.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Initialize Stripe (not supported on web)
   if (!kIsWeb) {
@@ -29,6 +34,9 @@ void main() async {
   }
 
   await initDependencies();
+
+  await sl<RequestNotificationPermissions>()(NoParams());
+  await sl<InitializeMessageHandlers>()(NoParams());
 
   // Initialize auth cubit and start listening to auth changes
   final authCubit = sl<AuthCubit>()..init();
@@ -62,12 +70,16 @@ class MyApp extends StatelessWidget {
       ],
       child: BlocListener<AuthCubit, AuthState>(
         listenWhen: (prev, curr) =>
-            prev.user?.uid != curr.user?.uid &&
-            curr.status == AuthStatus.authenticated,
-        listener: (context, state) {
-          // When user authenticates, initialize premium status check
-          if (state.user != null) {
+            prev.user?.uid != curr.user?.uid || prev.status != curr.status,
+        listener: (context, state) async {
+          if (state.status == AuthStatus.authenticated && state.user != null) {
             context.read<PremiumCubit>().init(state.user!.uid);
+
+            await sl<StartTokenSyncForUser>()(
+              StartTokenSyncParams(userId: state.user!.uid),
+            );
+          } else {
+            await sl<StopTokenSync>()(NoParams());
           }
         },
         child: BlocBuilder<LocaleCubit, Locale>(

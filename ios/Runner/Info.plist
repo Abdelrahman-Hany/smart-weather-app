@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+<true/>
+<key>NSUserNotificationUsageDescription</key>
+<string>We use notifications to send weather alerts and daily weather updates.</string>
 </dict>
 </plist>
