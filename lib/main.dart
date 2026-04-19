@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:weather_app_sarmad/core/usecase/usecase.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/initialize_local_notifications.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/initialize_message_handlers.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/request_notification_permissions.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/start_token_sync_for_user.dart';
@@ -37,6 +38,7 @@ void main() async {
 
   await sl<RequestNotificationPermissions>()(NoParams());
   await sl<InitializeMessageHandlers>()(NoParams());
+  await sl<InitializeLocalNotifications>()(NoParams());
 
   // Initialize auth cubit and start listening to auth changes
   final authCubit = sl<AuthCubit>()..init();

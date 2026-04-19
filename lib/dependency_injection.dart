@@ -1,13 +1,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:weather_app_sarmad/features/notifications/data/datasources/fcm_messaging_service.dart';
+import 'package:weather_app_sarmad/features/notifications/data/datasources/local_notification_service.dart';
 import 'package:weather_app_sarmad/features/notifications/data/repositories/notification_repository_impl.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/evaluate_weather_alerts.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/initialize_local_notifications.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/initialize_message_handlers.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/request_notification_permissions.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/show_weather_alert.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/start_token_sync_for_user.dart';
 import 'package:weather_app_sarmad/features/notifications/domain/usecases/stop_token_sync.dart';
 import 'core/localization/locale_cubit.dart';
@@ -60,6 +65,9 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<http.Client>(() => http.Client());
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<FirebaseMessaging>(() => FirebaseMessaging.instance);
+  sl.registerLazySingleton<FlutterLocalNotificationsPlugin>(
+    () => FlutterLocalNotificationsPlugin(),
+  );
   // ─── Data Sources ──────────────────────────────────────────────────
   // Weather
   sl.registerLazySingleton<WeatherRemoteDataSource>(
@@ -84,10 +92,17 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton<AiRemoteDataSource>(() => AiRemoteDataSource());
 
   // Notifications
-  sl.registerLazySingleton<FcmMessagingService>(() => FcmMessagingService(
-    messaging: sl<FirebaseMessaging>(),
-    firestore: sl<FirebaseFirestore>(),
-  ));
+  sl.registerLazySingleton<FcmMessagingService>(
+    () => FcmMessagingService(
+      messaging: sl<FirebaseMessaging>(),
+      firestore: sl<FirebaseFirestore>(),
+    ),
+  );
+
+  sl.registerLazySingleton<LocalNotificationService>(
+    () =>
+        LocalNotificationService(plugin: sl<FlutterLocalNotificationsPlugin>()),
+  );
 
   // ─── Repositories ──────────────────────────────────────────────────
   sl.registerLazySingleton<WeatherRepository>(
@@ -107,7 +122,10 @@ Future<void> initDependencies() async {
     () => AiRecommendationRepositoryImpl(dataSource: sl<AiRemoteDataSource>()),
   );
   sl.registerLazySingleton<NotificationRepository>(
-    () => NotificationRepositoryImpl(fcmMessagingService: sl<FcmMessagingService>()),
+    () => NotificationRepositoryImpl(
+      fcmMessagingService: sl<FcmMessagingService>(),
+      localNotificationService: sl<LocalNotificationService>(),
+    ),
   );
 
   // ─── Use Cases ─────────────────────────────────────────────────────
@@ -133,11 +151,25 @@ Future<void> initDependencies() async {
   );
 
   // Notifications
-  sl.registerLazySingleton(() => InitializeMessageHandlers(sl<NotificationRepository>()));
-  sl.registerLazySingleton(() => RequestNotificationPermissions(sl<NotificationRepository>()));
-  sl.registerLazySingleton(() => StartTokenSyncForUser(sl<NotificationRepository>()));
+  sl.registerLazySingleton(
+    () => InitializeMessageHandlers(sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => RequestNotificationPermissions(sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => StartTokenSyncForUser(sl<NotificationRepository>()),
+  );
   sl.registerLazySingleton(() => StopTokenSync(sl<NotificationRepository>()));
 
+  // local notifications
+  sl.registerLazySingleton(
+    () => InitializeLocalNotifications(sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton(
+    () => ShowWeatherAlert(sl<NotificationRepository>()),
+  );
+  sl.registerLazySingleton(() => EvaluateWeatherAlerts());
 
   // ─── Cubits ────────────────────────────────────────────────────────
   // Weather (factory — new instance each time)
@@ -148,6 +180,8 @@ Future<void> initDependencies() async {
       computeDailyForecast: sl<ComputeDailyForecast>(),
       locationRepository: sl<LocationRepository>(),
       geoLocationService: sl<GeoLocationService>(),
+      evaluateWeatherAlerts: sl<EvaluateWeatherAlerts>(),
+      showWeatherAlert: sl<ShowWeatherAlert>(),
     ),
   );
 

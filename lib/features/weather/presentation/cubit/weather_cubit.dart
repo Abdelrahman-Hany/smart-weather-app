@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/evaluate_weather_alerts.dart';
+import 'package:weather_app_sarmad/features/notifications/domain/usecases/show_weather_alert.dart';
 
 import '../../../../core/error/error_handler.dart';
 import '../../data/datasources/geo_location_service.dart';
@@ -15,19 +17,34 @@ class WeatherCubit extends Cubit<WeatherState> {
   final ComputeDailyForecast _computeDailyForecast;
   final LocationRepository _locationRepo;
   final GeoLocationService _geoService;
+  final EvaluateWeatherAlerts _evaluateWeatherAlerts;
+  final ShowWeatherAlert _showWeatherAlert;
 
   WeatherCubit({
     required GetCurrentWeather getCurrentWeather,
     required GetForecast getForecast,
     required ComputeDailyForecast computeDailyForecast,
     required LocationRepository locationRepository,
-    required GeoLocationService geoLocationService,
+    required GeoLocationService geoLocationService, required EvaluateWeatherAlerts evaluateWeatherAlerts, required ShowWeatherAlert showWeatherAlert,
   }) : _getCurrentWeather = getCurrentWeather,
        _getForecast = getForecast,
        _computeDailyForecast = computeDailyForecast,
        _locationRepo = locationRepository,
        _geoService = geoLocationService,
+       _evaluateWeatherAlerts = evaluateWeatherAlerts,
+       _showWeatherAlert = showWeatherAlert,
        super(WeatherState(activeIndex: locationRepository.getActiveIndex()));
+
+
+void _maybeNotifyWeatherCondition(previousWeather, weather) {
+final alert = _evaluateWeatherAlerts(
+previousWeather: previousWeather,
+currentWeather: weather,
+);
+  if (alert != null) {
+    _showWeatherAlert(ShowWeatherAlertParams(alert: alert));
+  }
+}
 
   /// Called on app start. Loads saved locations and fetches weather for all.
   Future<void> initialize() async {
@@ -507,6 +524,8 @@ class WeatherCubit extends Cubit<WeatherState> {
           },
           (forecast) {
             final dailyForecast = _computeDailyForecast(forecast);
+            final previousWeather = state.locations[index].weather;
+            _maybeNotifyWeatherCondition(previousWeather, weather);
             _updateLocationAtIndex(
               index,
               state.locations[index].copyWith(
